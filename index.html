@@ -1,1 +1,1205 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EA Overdue Payment Tracker</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#F1F5F9;color:#1E293B;min-height:100vh}
 
+/* ── HEADER ── */
+.header{background:white;border-bottom:1px solid #E2E8F0;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:150;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.logo-row{display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;background:linear-gradient(135deg,#EF4444,#DC2626);border-radius:9px;display:flex;align-items:center;justify-content:center;color:white;font-size:16px;font-weight:800}
+.h-title{font-size:16px;font-weight:700}
+.h-sub{font-size:10px;color:#94A3B8}
+.header-right{display:flex;gap:7px;align-items:center}
+
+/* user switcher */
+.user-switcher{display:flex;align-items:center;gap:6px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:20px;padding:4px 10px 4px 5px;cursor:pointer;font-size:12px;font-weight:600;color:#374151;transition:all .15s}
+.user-switcher:hover{border-color:#C7D2FE;background:#EEF2FF}
+.user-switcher select{border:none;background:transparent;outline:none;font-size:12px;font-weight:600;color:#374151;cursor:pointer;padding-right:4px}
+
+/* notification bell */
+.notif-bell-wrap{position:relative}
+.notif-bell{width:34px;height:34px;border-radius:9px;background:#F8FAFC;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .15s}
+.notif-bell:hover{background:#EEF2FF;border-color:#C7D2FE}
+.notif-badge{position:absolute;top:-4px;right:-4px;background:#EF4444;color:white;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;display:none}
+.notif-badge.show{display:flex}
+
+/* ── NOTIFICATION PANEL ── */
+.notif-overlay{display:none;position:fixed;inset:0;z-index:180;background:rgba(15,23,42,.2)}
+.notif-overlay.open{display:block}
+.notif-panel{position:fixed;top:0;right:-380px;width:370px;height:100vh;background:white;box-shadow:-4px 0 24px rgba(0,0,0,.12);z-index:190;display:flex;flex-direction:column;transition:right .25s cubic-bezier(.4,0,.2,1)}
+.notif-panel.open{right:0}
+.notif-panel-hd{padding:16px 18px;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between}
+.notif-panel-title{font-size:14px;font-weight:700}
+.notif-scroll{flex:1;overflow-y:auto;padding:10px 12px}
+.notif-empty{padding:40px 20px;text-align:center;color:#94A3B8;font-size:13px}
+.notif-item{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:11px 13px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.notif-item:hover{background:#EEF2FF;border-color:#C7D2FE}
+.notif-item.unread{background:#EFF6FF;border-color:#BFDBFE;border-left:3px solid #3B82F6}
+.notif-item.unread-storno{background:#FDF4FF;border-color:#E9D5FF;border-left:3px solid #7C3AED}
+.notif-item.unread-urgent{background:#FEF2F2;border-color:#FECACA;border-left:3px solid #EF4444}
+.notif-meta{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.notif-icon{font-size:14px}
+.notif-from{font-size:10px;color:#94A3B8}
+.notif-msg{font-size:12px;font-weight:600;color:#1E293B;line-height:1.4;margin-bottom:4px}
+.notif-client{font-size:11px;color:#6366F1;font-weight:600}
+.notif-date{font-size:10px;color:#94A3B8}
+.notif-actions{display:flex;gap:5px;margin-top:7px}
+
+/* ── BUTTONS ── */
+.btn{padding:7px 13px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.btn-primary{background:#6366F1;color:white}.btn-primary:hover{background:#4F46E5}
+.btn-red{background:#EF4444;color:white}.btn-red:hover{background:#DC2626}
+.btn-green{background:#10B981;color:white}.btn-green:hover{background:#059669}
+.btn-orange{background:#F59E0B;color:white}.btn-orange:hover{background:#D97706}
+.btn-gmail{background:#EA4335;color:white}.btn-gmail:hover{background:#C5221F}
+.btn-purple{background:#7C3AED;color:white}.btn-purple:hover{background:#6D28D9}
+.btn-ghost{background:white;color:#6366F1;border:1.5px solid #C7D2FE}.btn-ghost:hover{background:#EEF2FF}
+.btn-gray{background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0}.btn-gray:hover{background:#E2E8F0}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:6px}
+.btn-xs{padding:3px 8px;font-size:10px;border-radius:5px;font-weight:700}
+
+/* ── MAIN ── */
+.main{padding:18px 24px;max-width:1700px;margin:0 auto}
+
+/* ── ALERTS ── */
+.alert{border-radius:10px;padding:11px 14px;margin-bottom:12px;display:none}
+.alert.show{display:flex;align-items:flex-start;gap:10px}
+.a-red{background:#FEF2F2;border:1px solid #FCA5A5;border-left:4px solid #EF4444}
+.a-yellow{background:#FFFBEB;border:1px solid #FDE68A;border-left:4px solid #F59E0B}
+.alert-body{flex:1;font-size:12px}
+.alert-title{font-weight:700;margin-bottom:2px}
+
+/* ── KPI ── */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px}
+.kpi{background:white;border-radius:11px;padding:13px 14px;border:1px solid #E2E8F0;border-left:4px solid transparent;cursor:pointer;transition:all .15s}
+.kpi:hover,.kpi.active-filter{box-shadow:0 0 0 2px #6366F1;transform:translateY(-1px)}
+.kpi-icon{font-size:16px;margin-bottom:4px}
+.kpi-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94A3B8;margin-bottom:2px}
+.kpi-value{font-size:24px;font-weight:800;line-height:1;color:#0F172A}
+.kpi-sub{font-size:10px;color:#94A3B8;margin-top:2px}
+.k-all{border-left-color:#6366F1}.k-msg1{border-left-color:#3B82F6}.k-fu{border-left-color:#F59E0B}
+.k-m1{border-left-color:#F97316}.k-m2{border-left-color:#EF4444}.k-ink{border-left-color:#7C3AED}
+.k-done{border-left-color:#10B981}.k-aufh{border-left-color:#0891B2}.k-anwalt{border-left-color:#DC2626}
+
+/* ── TABLE ── */
+.card{background:white;border-radius:11px;border:1px solid #E2E8F0;overflow:hidden;margin-bottom:16px}
+.card-hd{padding:12px 16px;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap}
+.search-wrap{display:flex;align-items:center;gap:6px;border:1px solid #E2E8F0;border-radius:8px;padding:5px 10px;background:#F8FAFC;min-width:180px}
+.search-wrap input{border:none;background:none;outline:none;font-size:12px;color:#374151;width:100%}
+table{width:100%;border-collapse:collapse}
+thead th{padding:7px 11px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94A3B8;background:#F8FAFC;border-bottom:1px solid #E2E8F0;text-align:left;white-space:nowrap}
+tbody tr{border-bottom:1px solid #F1F5F9;transition:background .1s}
+tbody tr:hover{background:#FAFBFF}
+td{padding:9px 11px;font-size:12px;vertical-align:middle}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap}
+.b-new{background:#EFF6FF;color:#1D4ED8}
+.b-msg1{background:#DBEAFE;color:#1E40AF}
+.b-fu{background:#FFFBEB;color:#92400E}
+.b-m1{background:#FFF7ED;color:#C2410C}
+.b-m2{background:#FEF2F2;color:#B91C1C}
+.b-resp{background:#ECFDF5;color:#065F46}
+.b-ink{background:#F5F3FF;color:#6D28D9}
+.b-done{background:#F0FDF4;color:#166534}
+.b-aufh{background:#ECFEFF;color:#155E75}
+.b-anwalt{background:#FEF2F2;color:#991B1B}
+
+/* ── TEAM CHIP / AVATAR ── */
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-weight:800;color:white;flex-shrink:0}
+.av32{width:32px;height:32px;font-size:13px}
+.av20{width:20px;height:20px;font-size:9px}
+.av16{width:16px;height:16px;font-size:8px}
+.team-chip{display:inline-flex;align-items:center;gap:4px;border-radius:12px;padding:2px 7px 2px 3px;font-size:10px;font-weight:600}
+
+/* ── "BEI WEM" STATUS ── */
+.bei-wem{display:flex;flex-direction:column;gap:3px}
+.bw-stage{font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em}
+.bw-who{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#1E293B}
+
+/* ── STEP PIPS ── */
+.step-track{display:flex;gap:2px}
+.step-pip{height:4px;width:13px;border-radius:2px;background:#E2E8F0}
+.step-pip.done{background:#10B981}
+.step-pip.active{background:#F59E0B;animation:pulse .9s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:.5}to{opacity:1}}
+
+/* ── TIMELINE ── */
+.timeline{padding:11px 16px 11px 40px;border-top:1px dashed #E2E8F0;background:#FAFBFF}
+.tl-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:6px}
+.tl-pip{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.tl-s{background:#6366F1}.tl-r{background:#10B981}.tl-k{background:#7C3AED}.tl-n{background:#CBD5E1}
+.tl-text{font-size:11px;color:#475569;line-height:1.5}
+.tl-dt{font-size:10px;color:#94A3B8;margin-left:4px}
+
+.due-soon{color:#D97706;font-weight:700}
+.overdue{color:#EF4444;font-weight:700}
+
+.empty{padding:48px 20px;text-align:center;color:#94A3B8}
+.empty-icon{font-size:40px;margin-bottom:10px}
+
+/* ── MODALS ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:white;border-radius:14px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.28)}
+.modal-lg{max-width:600px}
+.modal-hd{padding:18px 20px 0;display:flex;align-items:flex-start;justify-content:space-between}
+.modal-title{font-size:15px;font-weight:700}
+.modal-x{cursor:pointer;color:#94A3B8;font-size:20px;line-height:1;padding:0 3px}.modal-x:hover{color:#1E293B}
+.modal-body{padding:13px 20px 20px}
+.modal-desc{font-size:12px;color:#64748B;margin-bottom:14px;line-height:1.6}
+.modal-foot{padding:0 20px 18px;display:flex;gap:8px;justify-content:flex-end}
+.btn-cancel{background:white;color:#64748B;border:1px solid #E2E8F0;padding:7px 15px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
+.fg{margin-bottom:12px}
+label{font-size:10px;font-weight:700;color:#374151;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+input,textarea,select{width:100%;border:1px solid #E2E8F0;border-radius:8px;padding:7px 10px;font-size:12px;outline:none;font-family:inherit;color:#1E293B;background:white}
+input:focus,textarea:focus,select:focus{border-color:#6366F1;box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+textarea{min-height:75px;resize:vertical}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── EMAIL PREVIEW ── */
+.em-prev{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px;margin-bottom:10px;font-size:12px;color:#374151;line-height:1.7;white-space:pre-wrap;max-height:220px;overflow-y:auto}
+.em-meta{display:grid;grid-template-columns:56px 1fr;gap:3px;font-size:11px;margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid #E2E8F0}
+.em-lbl{color:#94A3B8;font-weight:600}
+
+/* ── RESPONSE CARDS ── */
+.res-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.res-card{border:2px solid #E2E8F0;border-radius:9px;padding:11px;cursor:pointer;transition:all .15s;text-align:center}
+.res-card:hover{border-color:#6366F1;background:#F5F3FF}
+.res-card.sel{border-color:#6366F1;background:#EEF2FF}
+.res-icon{font-size:20px;margin-bottom:4px}
+.res-label{font-size:11px;font-weight:700;color:#1E293B}
+.res-sub{font-size:10px;color:#64748B}
+
+/* ── STORNO ── */
+.storno-step{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:9px;padding:13px;margin-bottom:10px}
+.storno-step-hd{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.s-num{width:20px;height:20px;border-radius:50%;background:#6366F1;color:white;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.s-num.done{background:#10B981}
+.s-title{font-size:12px;font-weight:700;flex:1}
+.s-done{font-size:10px;background:#ECFDF5;color:#065F46;padding:2px 6px;border-radius:8px;font-weight:700;display:none}
+.copy-box{background:#1E293B;border-radius:7px;padding:10px 12px;font-size:11px;color:#E2E8F0;line-height:1.6;white-space:pre-wrap;margin-bottom:7px;max-height:130px;overflow-y:auto}
+
+/* ── ABLEFY ── */
+.ablefy-box{background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;padding:10px 12px;margin-top:9px;display:none}
+.ablefy-lnk{word-break:break-all;color:#166534;font-weight:600;font-size:11px}
+
+/* ── CLOSER BOX ── */
+.closer-box{background:#EEF2FF;border:1px solid #C7D2FE;border-radius:8px;padding:11px;margin-top:9px;display:none}
+
+/* ── TEAM LIST ── */
+.team-row{display:flex;align-items:center;gap:9px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:9px 11px;margin-bottom:7px}
+.tm-info{flex:1}.tm-name{font-size:12px;font-weight:700}.tm-role{font-size:10px;color:#94A3B8}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:20px;right:20px;background:#1E293B;color:white;padding:10px 16px;border-radius:9px;font-size:12px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.2);transform:translateY(80px);opacity:0;transition:all .3s;z-index:300;display:flex;align-items:center;gap:6px}
+.toast.show{transform:translateY(0);opacity:1}
+.has-note{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#FEF3C7;border-radius:50%;font-size:9px;cursor:help;margin-left:3px}
+
+/* ── MENTION SUGGESTION ── */
+.mention-suggestions{position:absolute;background:white;border:1px solid #E2E8F0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:500;min-width:200px;overflow:hidden;display:none}
+.mention-opt{padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px}
+.mention-opt:hover{background:#EEF2FF}
+
+@media(max-width:1100px){.kpi-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.kpi-row{grid-template-columns:repeat(2,1fr)}.main{padding:10px}.form-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo-row">
+    <div class="logo">📋</div>
+    <div>
+      <div class="h-title">EA Overdue Payment Tracker</div>
+      <div class="h-sub">EcomAccelerator · <span id="lastSavedLabel">Wird geladen…</span></div>
+    </div>
+  </div>
+  <div class="header-right">
+    <!-- User switcher -->
+    <div class="user-switcher" id="userSwitcher">
+      <div class="avatar av20" id="headerAvatar" style="background:#94A3B8">?</div>
+      <select id="activeUserSelect" onchange="switchUser(this.value)">
+        <option value="">Wer bin ich?</option>
+      </select>
+    </div>
+    <!-- Notification bell -->
+    <div class="notif-bell-wrap">
+      <div class="notif-bell" onclick="toggleNotifPanel()" title="Benachrichtigungen">🔔</div>
+      <div class="notif-badge" id="notifBadge">0</div>
+    </div>
+    <button class="btn btn-gray btn-sm" onclick="openTeamModal()">👥 Team</button>
+    <button class="btn btn-gray btn-sm" onclick="exportCSV()">📥 CSV</button>
+    <button class="btn btn-gray btn-sm" onclick="exportData()" title="Daten exportieren zum Teilen">💾 Export</button>
+    <label class="btn btn-gray btn-sm" style="cursor:pointer;margin:0" title="Daten importieren">📂 Import<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
+    <button class="btn btn-gray btn-sm" onclick="manualSync()" title="Daten von Google Sheets laden"><span id="syncIndicator" style="font-size:11px;font-weight:600;color:#94A3B8">☁️ Sync</span></button>
+    <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Kunde</button>
+  </div>
+</div>
+
+<!-- NOTIFICATION PANEL -->
+<div class="notif-overlay" id="notifOverlay" onclick="closeNotifPanel()"></div>
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-panel-hd">
+    <span class="notif-panel-title">🔔 Benachrichtigungen <span id="notifPanelFor" style="font-size:11px;color:#94A3B8;font-weight:400"></span></span>
+    <div style="display:flex;gap:7px">
+      <button class="btn btn-gray btn-sm" onclick="markAllRead()">Alle gelesen</button>
+      <button class="btn btn-gray btn-sm" onclick="closeNotifPanel()">×</button>
+    </div>
+  </div>
+  <div class="notif-scroll" id="notifList"><div class="notif-empty">Keine Benachrichtigungen 🎉</div></div>
+</div>
+
+<div class="main">
+  <!-- ALERTS -->
+  <div class="alert a-red" id="inkassoAlert">
+    <span style="font-size:18px">⚖️</span>
+    <div class="alert-body">
+      <div class="alert-title" style="color:#B91C1C">Kunden bereit für Inkasso — alle 4 Mahnungen ohne Antwort</div>
+      <div id="inkassoAlertItems" style="color:#7F1D1D;line-height:1.9;margin-top:2px"></div>
+    </div>
+    <span style="cursor:pointer;font-size:17px;color:#F87171;padding:0 3px" onclick="this.closest('.alert').classList.remove('show')">×</span>
+  </div>
+  <div class="alert a-yellow" id="dueAlert">
+    <span style="font-size:18px">⏰</span>
+    <div class="alert-body">
+      <div class="alert-title" style="color:#92400E">Heute fällig oder überfällig</div>
+      <div id="dueAlertItems" style="color:#78350F;line-height:1.9;margin-top:2px"></div>
+    </div>
+    <span style="cursor:pointer;font-size:17px;color:#FCD34D;padding:0 3px" onclick="this.closest('.alert').classList.remove('show')">×</span>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpi-row">
+    <div class="kpi k-all" onclick="filterS('all')" id="kpi-all"><div class="kpi-icon">📋</div><div class="kpi-label">Gesamt</div><div class="kpi-value" id="kv-all">0</div><div class="kpi-sub">Alle Fälle</div></div>
+    <div class="kpi k-msg1" onclick="filterS('msg1')" id="kpi-msg1"><div class="kpi-icon">💬</div><div class="kpi-label">1. E-Mail</div><div class="kpi-value" id="kv-msg1">0</div><div class="kpi-sub">Warte 3 Tage</div></div>
+    <div class="kpi k-fu" onclick="filterS('followup')" id="kpi-followup"><div class="kpi-icon">📮</div><div class="kpi-label">Mahnung 1</div><div class="kpi-value" id="kv-fu">0</div><div class="kpi-sub">Warte 7 Tage</div></div>
+    <div class="kpi k-m1" onclick="filterS('mahnung1')" id="kpi-mahnung1"><div class="kpi-icon">📮</div><div class="kpi-label">Mahnung 2</div><div class="kpi-value" id="kv-m1">0</div><div class="kpi-sub">Warte 7 Tage</div></div>
+    <div class="kpi k-m2" onclick="filterS('mahnung2')" id="kpi-mahnung2"><div class="kpi-icon">🚨</div><div class="kpi-label">Mahnung 3</div><div class="kpi-value" id="kv-m2">0</div><div class="kpi-sub">Final</div></div>
+    <div class="kpi k-ink" onclick="filterS('inkasso')" id="kpi-inkasso"><div class="kpi-icon">⚖️</div><div class="kpi-label">Inkasso</div><div class="kpi-value" id="kv-ink">0</div><div class="kpi-sub">Übergeben</div></div>
+    <div class="kpi k-done" onclick="filterS('resolved')" id="kpi-resolved"><div class="kpi-icon">✅</div><div class="kpi-label">Gezahlt</div><div class="kpi-value" id="kv-resolved">0</div><div class="kpi-sub">Abgeschlossen</div></div>
+    <div class="kpi k-aufh" onclick="filterS('aufhebung')" id="kpi-aufhebung"><div class="kpi-icon">🤝</div><div class="kpi-label">Aufhebung</div><div class="kpi-value" id="kv-aufhebung">0</div><div class="kpi-sub">Einigung</div></div>
+    <div class="kpi k-anwalt" onclick="filterS('anwalt')" id="kpi-anwalt"><div class="kpi-icon">⚠️</div><div class="kpi-label">Anwalt/Widerruf</div><div class="kpi-value" id="kv-anwalt">0</div><div class="kpi-sub">Rechtlich</div></div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="card">
+    <div class="card-hd">
+      <div><div style="font-size:14px;font-weight:700">Kunden in Mahnung</div><div style="font-size:11px;color:#94A3B8" id="tableCount">—</div></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="search-wrap"><span style="color:#CBD5E1">🔍</span><input type="text" id="searchInput" placeholder="Name oder E-Mail…" oninput="renderTable()"></div>
+        <select id="sfStatus" onchange="renderTable()" style="font-size:11px;padding:5px 9px;border-radius:8px;border:1px solid #E2E8F0">
+          <option value="all">Alle Status</option>
+          <option value="new">Neu</option>
+          <option value="msg1">1. E-Mail gesendet</option>
+          <option value="followup">Mahnung 1 gesendet</option>
+          <option value="mahnung1">Mahnung 2 gesendet</option>
+          <option value="mahnung2">Mahnung 3 gesendet</option>
+          <option value="responded">Antwort erhalten</option>
+          <option value="inkasso">Inkasso</option>
+          <option value="resolved">Gezahlt</option>
+          <option value="aufhebung">Aufhebung</option>
+          <option value="anwalt">Anwalt / Widerruf</option>
+        </select>
+        <select id="sfTeam" onchange="renderTable()" style="font-size:11px;padding:5px 9px;border-radius:8px;border:1px solid #E2E8F0">
+          <option value="all">Alle Mitarbeiter</option>
+        </select>
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th style="width:20px"></th>
+        <th>Kunde</th>
+        <th>Raten / Betrag</th>
+        <th>E-Mail Status</th>
+        <th>Fortschritt</th>
+        <th>Bei wem / Nächste Aktion</th>
+        <th style="min-width:200px">Aktionen</th>
+      </tr></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="empty" id="emptyState" style="display:none">
+      <div class="empty-icon">📭</div>
+      <div style="font-size:14px;font-weight:600;color:#64748B;margin-bottom:5px">Keine Kunden gefunden</div>
+      <div style="font-size:12px;margin-bottom:16px">Filter anpassen oder neuen Kunden hinzufügen</div>
+      <button class="btn btn-primary" onclick="openAddModal()">+ Ersten Kunden hinzufügen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADD/EDIT MODAL ══ -->
+<div class="overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title" id="addModalTitle">Kunden hinzufügen</div><span class="modal-x" onclick="closeModal('addModal')">×</span></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="fg"><label>Vor- und Nachname *</label><input type="text" id="f-name" placeholder="Max Mustermann"></div>
+        <div class="fg"><label>E-Mail *</label><input type="email" id="f-email" placeholder="max@beispiel.de"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Telefon (optional)</label><input type="tel" id="f-phone" placeholder="+49 170 123 4567"></div>
+        <div class="fg"><label>Offene Rate(n) / Monat(e)</label><input type="text" id="f-raten" placeholder="z.B. Juni-Rate 2026"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Offener Betrag (€)</label><input type="number" id="f-betrag" placeholder="1497" min="0" step="0.01"></div>
+        <div class="fg">
+          <label>Mahnstufe (bereits gesendet)</label>
+          <select id="f-mahnstufe">
+            <option value="0">0 — Noch keine gesendet (1. E-Mail geht raus)</option>
+            <option value="1">1 — Erste E-Mail gesendet (Mahnung 1 als nächstes)</option>
+            <option value="2">2 — Mahnung 1 gesendet (Mahnung 2 als nächstes)</option>
+            <option value="3">3 — Mahnung 2 gesendet (Mahnung 3 als nächstes)</option>
+            <option value="4">4 — Alle 3 Mahnungen gesendet (Inkasso-bereit)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Zugewiesen an (Closer)</label><select id="f-closer"><option value="">— Nicht zugewiesen —</option></select></div>
+        <div class="fg"><label>Interne Notiz</label><input type="text" id="f-notes" placeholder="z.B. 1. Mahnung am 01.03. per Mail"></div>
+      </div>
+      <input type="hidden" id="f-editId">
+    </div>
+    <div class="modal-foot"><button class="btn-cancel" onclick="closeModal('addModal')">Abbrechen</button><button class="btn btn-primary" onclick="saveClient()">💾 Speichern</button></div>
+  </div>
+</div>
+
+<!-- ══ SEND EMAIL MODAL ══ -->
+<div class="overlay" id="sendModal">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title" id="sendModalTitle">E-Mail senden</div><span class="modal-x" onclick="closeModal('sendModal')">×</span></div>
+    <div class="modal-body">
+      <div class="modal-desc" id="sendModalDesc"></div>
+      <div class="em-meta"><span class="em-lbl">An:</span><span id="em-to" style="font-weight:700"></span><span class="em-lbl">Betreff:</span><span id="em-subject"></span></div>
+      <div class="em-prev" id="em-body"></div>
+      <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:7px;padding:9px 12px;font-size:11px;color:#92400E;margin-bottom:11px"><strong>So geht's:</strong> Gmail öffnen → abschicken → zurückkommen → bestätigen.</div>
+      <div style="display:flex;gap:7px;margin-bottom:9px">
+        <button class="btn btn-gmail" id="gmailBtn" onclick="openGmail()" style="flex:1">📧 In Gmail öffnen</button>
+        <button class="btn btn-ghost" onclick="copyEmailText()" style="flex:1">📋 Kopieren</button>
+      </div>
+      <button class="btn btn-green" onclick="confirmSent()" style="width:100%;justify-content:center">✓ Gesendet bestätigen &amp; dokumentieren</button>
+    </div>
+    <div class="modal-foot"><button class="btn-cancel" onclick="closeModal('sendModal')">Schließen</button></div>
+  </div>
+</div>
+
+<!-- ══ RESPONSE MODAL ══ -->
+<div class="overlay" id="responseModal">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title" id="resModalTitle">Antwort dokumentieren</div><span class="modal-x" onclick="closeModal('responseModal')">×</span></div>
+    <div class="modal-body">
+      <div class="modal-desc">Was ist das Ergebnis der Rückmeldung?</div>
+      <div class="res-grid">
+        <div class="res-card" id="rc-bezahlt" onclick="selRes('bezahlt')"><div class="res-icon">✅</div><div class="res-label">Bezahlt</div><div class="res-sub">Fall sofort schließen</div></div>
+        <div class="res-card" id="rc-ablefy" onclick="selRes('ablefy')"><div class="res-icon">💳</div><div class="res-label">Möchte zahlen</div><div class="res-sub">Ablefy-Link schicken</div></div>
+        <div class="res-card" id="rc-ratenpause" onclick="selRes('ratenpause')"><div class="res-icon">⏸</div><div class="res-label">Ratenpause</div><div class="res-sub">→ Sandra</div></div>
+        <div class="res-card" id="rc-closer" onclick="selRes('closer')"><div class="res-icon">📞</div><div class="res-label">Zum Closer</div><div class="res-sub">Weiterleiten</div></div>
+        <div class="res-card" id="rc-storno" onclick="selRes('storno')" style="grid-column:span 2"><div class="res-icon">🔄</div><div class="res-label">An Justin — Storno-Gespräch</div><div class="res-sub">Storno-Flow starten</div></div>
+      </div>
+      <div class="ablefy-box" id="ablfyBox"><div style="font-weight:700;color:#166534;margin-bottom:4px">💳 Ablefy-Link:</div><div class="ablefy-lnk">https://myablefy.com/s/ecomaccelerator/payment/rGhsYxB-5AzQ5qxs4E9P/manage</div><button class="btn btn-green btn-sm" style="margin-top:7px" onclick="copyAblefy()">📋 Link kopieren</button></div>
+      <div class="closer-box" id="closerBox">
+        <div style="font-size:12px;font-weight:700;color:#3730A3;margin-bottom:7px">👤 Welchem Closer weiterleiten?</div>
+        <select id="res-closer-sel" style="margin-bottom:8px" onchange="buildCloserMsg()"></select>
+        <div id="closerMsgWrap" style="display:none">
+          <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:4px">📋 Slack-Nachricht (kopieren):</div>
+          <div class="copy-box" id="closerSlackMsg"></div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="copyCloserMsg()">📋 Kopieren</button>
+            <button class="btn btn-gmail btn-sm" id="closerGmailBtn" onclick="openCloserGmail()">📧 Per E-Mail</button>
+          </div>
+        </div>
+      </div>
+      <div class="fg" style="margin-top:11px;position:relative">
+        <label>Notiz — tippe @Name um jemanden zu taggen</label>
+        <textarea id="res-note" placeholder="z.B. @Sandra bitte prüfen, @Leon bitte übernehmen…" oninput="handleMentionInput(this,'res-note')" onkeydown="handleMentionKey(event,'res-note')"></textarea>
+        <div class="mention-suggestions" id="ms-res-note"></div>
+      </div>
+      <input type="hidden" id="res-clientId">
+    </div>
+    <div class="modal-foot"><button class="btn-cancel" onclick="closeModal('responseModal')">Abbrechen</button><button class="btn btn-primary" onclick="saveResponse()">💾 Speichern</button></div>
+  </div>
+</div>
+
+<!-- ══ STORNO MODAL ══ -->
+<div class="overlay" id="stornoModal">
+  <div class="modal modal-lg">
+    <div class="modal-hd"><div class="modal-title" id="stornoTitle">Storno-Flow</div><span class="modal-x" onclick="closeModal('stornoModal')">×</span></div>
+    <div class="modal-body">
+      <div class="modal-desc" id="stornoDesc"></div>
+      <div class="storno-step">
+        <div class="storno-step-hd"><div class="s-num" id="sn1">1</div><div class="s-title">Storno-E-Mail senden</div><div class="s-done" id="sd1">✓ Erledigt</div></div>
+        <div class="em-meta"><span class="em-lbl">An:</span><span id="st-to" style="font-weight:700"></span><span class="em-lbl">Betreff:</span><span>Ihr Rücktrittsgesuch – EcomAccelerator</span></div>
+        <div class="em-prev" id="st-body" style="max-height:140px"></div>
+        <div style="display:flex;gap:6px"><button class="btn btn-gmail btn-sm" id="stornoGmailBtn" onclick="openStornoGmail()">📧 In Gmail öffnen</button><button class="btn btn-green btn-sm" onclick="doneStornoStep(1)">✓ E-Mail gesendet</button></div>
+      </div>
+      <div class="storno-step">
+        <div class="storno-step-hd"><div class="s-num" id="sn2">2</div><div class="s-title">Stornoformular ausfüllen (vorausgefüllt)</div><div class="s-done" id="sd2">✓ Erledigt</div></div>
+        <div style="font-size:11px;color:#64748B;margin-bottom:8px">Alle Felder sind mit Kundendaten vorausgefüllt — prüfen &amp; absenden.</div>
+        <div style="display:flex;gap:6px"><button class="btn btn-purple btn-sm" id="stornoFormBtn" onclick="openStornoForm()">📋 Formular öffnen (vorausgefüllt)</button><button class="btn btn-green btn-sm" onclick="doneStornoStep(2)">✓ Formular ausgefüllt</button></div>
+      </div>
+      <div class="storno-step">
+        <div class="storno-step-hd"><div class="s-num" id="sn3">3</div><div class="s-title">Justin benachrichtigen</div><div class="s-done" id="sd3">✓ Erledigt</div></div>
+        <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:4px">📋 Slack/WhatsApp an Justin:</div>
+        <div class="copy-box" id="justinMsg"></div>
+        <div style="display:flex;gap:6px;margin-bottom:7px"><button class="btn btn-ghost btn-sm" onclick="copyJustin()">📋 Kopieren</button><button class="btn btn-gmail btn-sm" id="justinGmailBtn" onclick="openJustinGmail()">📧 Justin per Gmail</button></div>
+        <button class="btn btn-green btn-sm" onclick="doneStornoStep(3)">✓ Justin informiert</button>
+      </div>
+      <div id="stornoOutcomeBox" style="display:none;background:#F0FDF4;border:1px solid #86EFAC;border-radius:9px;padding:12px;margin-top:4px">
+        <div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:8px">📊 Justin's Outcome eintragen</div>
+        <select id="stornoOutcomeSel" style="margin-bottom:7px;font-size:12px"><option value="">— Noch offen —</option><option value="termin_gebucht">Termin gebucht</option><option value="bezahlt">Bezahlt / Einigung</option><option value="aufhebung">Aufhebung vereinbart</option><option value="inkasso">→ Inkasso</option><option value="anwalt">Anwalt / Widerruf</option><option value="storno_ok">Storno akzeptiert</option></select>
+        <button class="btn btn-green btn-sm" onclick="saveStornoOutcome()">💾 Outcome speichern</button>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn-cancel" onclick="closeModal('stornoModal')">Schließen</button><button class="btn btn-primary" onclick="closeModal('stornoModal');renderAll()">Fertig</button></div>
+  </div>
+</div>
+
+<!-- ══ BEZAHLT MODAL ══ -->
+<div class="overlay" id="bezahltModal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-hd"><div class="modal-title">✅ Betrag bestätigen</div><span class="modal-x" onclick="closeModal('bezahltModal')">×</span></div>
+    <div class="modal-body">
+      <div class="modal-desc" id="bezahltDesc"></div>
+      <div class="fg" style="margin-top:10px">
+        <label>Gezahlter Betrag (€)</label>
+        <input type="number" id="bezahltAmount" placeholder="z.B. 1500" step="0.01" min="0" style="font-size:16px;font-weight:700">
+        <div style="font-size:11px;color:#94A3B8;margin-top:4px">Offener Betrag laut Akte: <span id="bezahltExpected" style="font-weight:700;color:#374151"></span></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn-cancel" onclick="closeModal('bezahltModal')">Abbrechen</button><button class="btn btn-primary" onclick="confirmBezahlt()">✅ Als gezahlt markieren</button></div>
+  </div>
+</div>
+
+<!-- ══ TEAM MODAL ══ -->
+<div class="overlay" id="teamModal">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title">👥 Team verwalten</div><span class="modal-x" onclick="closeModal('teamModal')">×</span></div>
+    <div class="modal-body">
+      <div class="modal-desc">Hinterlege E-Mail-Adressen damit Benachrichtigungen per Gmail versendet werden können.</div>
+      <div id="teamList" style="margin-bottom:14px"></div>
+      <div style="background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:9px;padding:13px">
+        <div style="font-size:12px;font-weight:700;margin-bottom:9px">➕ Mitarbeiter hinzufügen / bearbeiten</div>
+        <div class="form-row"><div class="fg"><label>Name *</label><input type="text" id="tm-name" placeholder="Vorname"></div><div class="fg"><label>Rolle</label><select id="tm-role"><option>Closer</option><option>Buchhaltung</option><option>Executive Assistant</option><option>Storno</option><option>Sonstiges</option></select></div></div>
+        <div class="form-row"><div class="fg"><label>Slack-Handle</label><input type="text" id="tm-slack" placeholder="@name"></div><div class="fg"><label>E-Mail</label><input type="email" id="tm-email" placeholder="name@ecomaccelerator.de"></div></div>
+        <input type="hidden" id="tm-editId">
+        <div style="display:flex;gap:7px;margin-top:4px"><button class="btn btn-primary btn-sm" onclick="saveTeamMember()">💾 Speichern</button><button class="btn btn-gray btn-sm" onclick="clearTmForm()">✕</button></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn-cancel" onclick="closeModal('teamModal')">Schließen</button></div>
+  </div>
+</div>
+
+<!-- ══ NOTE MODAL ══ -->
+<div class="overlay" id="noteModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-hd"><div class="modal-title">Notiz hinzufügen</div><span class="modal-x" onclick="closeModal('noteModal')">×</span></div>
+    <div class="modal-body">
+      <div class="fg" style="position:relative">
+        <label>Notiz — tippe @Name um jemanden zu taggen</label>
+        <textarea id="noteText" placeholder="z.B. @Sandra bitte prüfen, Zahlung kommt nächste Woche…" style="min-height:90px" oninput="handleMentionInput(this,'noteText')" onkeydown="handleMentionKey(event,'noteText')"></textarea>
+        <div class="mention-suggestions" id="ms-noteText"></div>
+      </div>
+      <input type="hidden" id="noteClientId">
+    </div>
+    <div class="modal-foot"><button class="btn-cancel" onclick="closeModal('noteModal')">Abbrechen</button><button class="btn btn-primary" onclick="saveNote()">Speichern</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════
+const STEPS = [
+  {num:1,key:'msg1',    label:'Erste E-Mail',icon:'💬',nextDelay:3},
+  {num:2,key:'followup',label:'Mahnung 1',   icon:'📮',nextDelay:7},
+  {num:3,key:'mahnung1',label:'Mahnung 2',   icon:'📮',nextDelay:7},
+  {num:4,key:'mahnung2',label:'Mahnung 3',   icon:'🚨',nextDelay:null},
+];
+const EMAIL_TPL={
+  1:{label:'Erste Erinnerung',subject:()=>'Offene Rate – EcomAccelerator',
+    body:(n,r)=>`Hey ${n}, ich hoffe bei dir läuft alles gut und du kommst voran mit deinen Zielen 💪 Kurzes Update aus unserer Buchhaltung:\n\nDie Rate für ${r||'den letzten Monat'} ist aktuell noch offen und leider bisher nicht eingegangen.\n\nBitte bring das zeitnah in Ordnung, damit keine Mahngebühren oder unnötige Zusatzkosten für dich entstehen.\n\nWenn es technische Probleme gab oder du Fragen hast, gib gern kurz Bescheid – wir finden eine Lösung.\n\nDanke dir & let's keep the momentum! 🚀\n\nLiebe Grüße,\nEcomAccelerator Team`},
+  2:{label:'Mahnung 1',subject:()=>'Mahnung 1: Offene Rate – EcomAccelerator',
+    body:(n,r)=>`Hey ${n}, ich wollte dich nochmal an die ausstehende ${r||'letzte'}-Zahlung erinnern – aktuell ist noch nichts eingegangen.\n\nBitte kümmere dich spätestens in den nächsten 48h darum, um Mahngebühren oder Einschränkungen im Zugang zu vermeiden.\n\nWenn du Unterstützung brauchst oder es Rückfragen gibt, melde dich bitte direkt hier.\n\nDanke dir für die schnelle Klärung.\n\nLiebe Grüße,\nEcomAccelerator Team`},
+  3:{label:'Mahnung 2',subject:()=>'Mahnung 2 – Offene Zahlung EcomAccelerator',
+    body:(n,r)=>`Hi ${n}, wir haben dich bereits an deine offene ${r||'letzte'}-Rate erinnert – aktuell ist der Betrag weiterhin unbezahlt.\n\nLaut unseren Zahlungsbedingungen bedeutet das:\n→ Mahngebühr bei weiterer Verzögerung\n→ Mögliche Sperrung des Zugangs\n\nWir möchten das vermeiden – bitte bring das bis spätestens in den nächsten Tagen in Ordnung oder melde dich mit einem Update.\n\nLiebe Grüße,\nEcomAccelerator Team`},
+  4:{label:'Mahnung 3',subject:()=>'Mahnung 3 – EcomAccelerator',
+    body:(n,r)=>`Hey ${n}, dies ist unsere letzte Erinnerung zur offenen Zahlung für ${r||'die ausstehende Rate'}.\n\nSollte der Betrag nicht innerhalb der nächsten 48 Stunden beglichen werden oder du dich proaktiv bei uns melden, wird dein Zugang deaktiviert und der Fall an unser Mahnwesen übergeben.\n\nWenn es aktuell Schwierigkeiten mit der Zahlung gibt, sag uns jetzt Bescheid – wir finden gemeinsam eine Lösung.\n\nWichtig ist nur: Es braucht jetzt eine klare Rückmeldung von dir, damit wir nicht eskalieren müssen.\n\nLetzte Chance, das sauber zu regeln.\n\nLiebe Grüße,\nEcomAccelerator Team`}
+};
+const STORNO_TPL={
+  subject:()=>'Ihr Rücktrittsgesuch – EcomAccelerator',
+  body:(n)=>`Grüß dich ${n},\n\nWie erwähnt, ist ein Rücktritt in deinem Fall nicht möglich. Wir sind trotzdem gewillt, mit dir eine beiderseitige Lösung zu finden. Dafür ist es notwendig, mit unserem zuständigen Mitarbeiter einen Termin zu vereinbaren.\n\n👉 https://calendly.com/justin-strategiegespraeche/feedback-gesprach\n\nBuch dir bitte so zeitnah wie möglich einen Termin und gib mir anschließend Bescheid, für wann du dich eingetragen hast.\n\nBitte bedenke, dass dein Anliegen nur bearbeitet werden kann, wenn du dir einen Termin buchst und dort auch zuverlässig erscheinst. Sollte von deiner Seite nichts kommen und deine Zahlung bleibt aus, wird automatisch das Mahnwesen eingeleitet, wodurch weitere Kosten entstehen.\n\nVielen Dank und freundliche Grüße,\nEcomAccelerator Team`
+};
+const ABLEFY='https://myablefy.com/s/ecomaccelerator/payment/rGhsYxB-5AzQ5qxs4E9P/manage';
+const STORNO_FORM='https://docs.google.com/forms/d/e/1FAIpQLSdCcrZnlevMQY0w1LOcNmi2cVPu7iPOaNQ-_fsN8G9a38j2lQ/viewform?usp=pp_url';
+const SF={vn:'entry.146539729',nn:'entry.473649501',em:'entry.768943071',tel:'entry.116701704',cl:'entry.1266214319',dy:'entry.1401337064_year',dm:'entry.1401337064_month',dd:'entry.1401337064_day',gr:'entry.1168966880'};
+const RES_LBL={bezahlt:'Bezahlt',ablefy:'Möchte zahlen (Ablefy)',ratenpause:'Ratenpause',closer:'Zum Closer weitergeleitet',storno:'An Justin (Storno)'};
+const STATUS_CFG={new:{t:'Neu',b:'b-new',i:'🔵'},msg1:{t:'1. E-Mail',b:'b-msg1',i:'💬'},followup:{t:'Mahnung 1',b:'b-fu',i:'📮'},mahnung1:{t:'Mahnung 2',b:'b-m1',i:'📮'},mahnung2:{t:'Mahnung 3',b:'b-m2',i:'🚨'},responded:{t:'Antwort',b:'b-resp',i:'💬'},inkasso:{t:'Inkasso',b:'b-ink',i:'⚖️'},resolved:{t:'Gezahlt',b:'b-done',i:'✅'},aufhebung:{t:'Aufhebung',b:'b-aufh',i:'🤝'},anwalt:{t:'Anwalt/Widerruf',b:'b-anwalt',i:'⚠️'}};
+const DEFAULT_TEAM=[
+  {id:'t1',name:'Jenny', role:'Executive Assistant',slackHandle:'@jenny', email:'',color:'#8B5CF6'},
+  {id:'t2',name:'Sandra',role:'Buchhaltung',        slackHandle:'@sandra',email:'',color:'#10B981'},
+  {id:'t3',name:'Leon',  role:'Closer',             slackHandle:'@leon',  email:'',color:'#3B82F6'},
+  {id:'t4',name:'Galib', role:'Closer',             slackHandle:'@galib', email:'',color:'#F59E0B'},
+  {id:'t5',name:'Louis', role:'Closer',             slackHandle:'@louis', email:'',color:'#EF4444'},
+  {id:'t6',name:'Justin',role:'Storno',             slackHandle:'@justin',email:'',color:'#DC2626'},
+];
+
+// ══ STATE ══
+let clients=[], team=[], notifications=[];
+let activeUserId=null, currentFilter='all';
+let activeSendId=null, activeGmailUrl=null, activeEmailBody='';
+let activeResType=null, activeStornoId=null;
+let stornoSteps={1:false,2:false,3:false};
+let mentionQuery='', mentionField='', mentionStart=-1;
+
+// ══ GOOGLE SHEETS SYNC ══
+const SHEETS_URL='https://script.google.com/macros/s/AKfycbzVrAFgGsD56pjO1ongW13F9yktBrj92-sytOruk9fJlWBFrzc1_meeL9HNDWxveF9j8w/exec';
+
+function syncToSheets(){
+  if(!SHEETS_URL)return;
+  const payload=JSON.stringify({clients,team,notifications,savedAt:new Date().toISOString()});
+  fetch(SHEETS_URL,{method:'POST',mode:'no-cors',body:payload,headers:{'Content-Type':'application/json'}}).catch(()=>{});
+  setSyncIndicator('saving');
+  setTimeout(()=>setSyncIndicator('ok'),3000);
+}
+
+let _sheetsLoading=false;
+function loadFromSheets(onDone){
+  if(!SHEETS_URL||_sheetsLoading){if(onDone)onDone(false);return;}
+  _sheetsLoading=true;
+  const cbName='__ecGSCallback';
+  let timer=null;
+  function cleanup(){clearTimeout(timer);delete window[cbName];const s=document.getElementById('__ecGSScript');if(s)s.remove();_sheetsLoading=false;}
+  window[cbName]=function(data){
+    cleanup();
+    try{
+      if(data&&Array.isArray(data.clients)){
+        clients=data.clients;
+        if(data.team&&Array.isArray(data.team))team=data.team;
+        if(data.notifications&&Array.isArray(data.notifications))notifications=data.notifications;
+        localStorage.setItem('ec_clients_v4',JSON.stringify(clients));
+        localStorage.setItem('ec_team_v2',JSON.stringify(team));
+        localStorage.setItem('ec_notifs_v1',JSON.stringify(notifications));
+        if(onDone)onDone(true);
+      }else{if(onDone)onDone(false);}
+    }catch(e){if(onDone)onDone(false);}
+  };
+  timer=setTimeout(function(){cleanup();if(onDone)onDone(false);},6000);
+  const s=document.createElement('script');s.id='__ecGSScript';
+  s.src=SHEETS_URL+'?callback='+cbName+'&t='+Date.now();
+  s.onerror=function(){cleanup();if(onDone)onDone(false);};
+  document.head.appendChild(s);
+}
+
+function setSyncIndicator(state){
+  const el=document.getElementById('syncIndicator');if(!el)return;
+  if(state==='saving'){el.textContent='☁️ Speichern…';el.style.color='#F59E0B';}
+  else if(state==='ok'){el.textContent='☁️ Synced';el.style.color='#10B981';}
+  else if(state==='loading'){el.textContent='☁️ Laden…';el.style.color='#60A5FA';}
+  else if(state==='error'){el.textContent='☁️ Offline';el.style.color='#9CA3AF';}
+}
+
+function manualSync(){
+  setSyncIndicator('loading');
+  loadFromSheets(function(ok){
+    if(ok){renderAll();populateTeamDropdowns();updateNotifBadge();setSyncIndicator('ok');toast('☁️ Daten von Google Sheets aktualisiert');}
+    else{setSyncIndicator('error');toast('⚠️ Google Sheets nicht erreichbar','warn');}
+  });
+}
+
+// ══ STORAGE ══
+function save(){localStorage.setItem('ec_clients_v4',JSON.stringify(clients));localStorage.setItem('ec_lastSaved',new Date().toISOString());updateLastSaved();syncToSheets();try{new BroadcastChannel('ec_sync').postMessage({type:'saved',ts:Date.now()});}catch(e){}}
+function saveTeam(){localStorage.setItem('ec_team_v2',JSON.stringify(team));}
+function saveNotifs(){localStorage.setItem('ec_notifs_v1',JSON.stringify(notifications));}
+function load(){
+  const d=localStorage.getItem('ec_clients_v4'); if(d){clients=JSON.parse(d);return;}
+  const old=localStorage.getItem('mahn_clients_v3')||localStorage.getItem('mahnung_clients_v2')||localStorage.getItem('mahnung_clients');
+  if(old){ clients=JSON.parse(old).map(c=>({...c,messages:c.messages||[{num:1,sentDate:null},{num:2,sentDate:null},{num:3,sentDate:null},{num:4,sentDate:null}],stornoFlow:c.stornoFlow||{step1:false,step2:false,step3:false,outcome:null}})); save(); }
+}
+function loadTeam(){ const d=localStorage.getItem('ec_team_v2'); team=d?JSON.parse(d):JSON.parse(JSON.stringify(DEFAULT_TEAM)); if(!d)saveTeam(); }
+function loadNotifs(){ const d=localStorage.getItem('ec_notifs_v1'); notifications=d?JSON.parse(d):[]; }
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+function today(){return new Date().toISOString().split('T')[0];}
+function fmtDate(iso){if(!iso||iso==='—')return '—';const[y,m,d]=iso.split('-');return`${d}.${m}.${y}`;}
+function daysDiff(iso){if(!iso)return null;return Math.floor((new Date(iso)-Date.now())/(1000*60*60*24));}
+function addDays(iso,n){const d=new Date(iso);d.setDate(d.getDate()+n);return d.toISOString().split('T')[0];}
+function getTeam(id){return team.find(t=>t.id===id);}
+function getJustin(){return team.find(t=>t.role==='Storno')||{name:'Justin',slackHandle:'@justin',email:''};}
+function getSandra(){return team.find(t=>t.role==='Buchhaltung')||{name:'Sandra',slackHandle:'@sandra',email:''};}
+
+// ══ STATUS ══
+function getStatus(c){
+  if(['inkasso','resolved','responded','aufhebung','anwalt'].includes(c.status))return c.status;
+  const s=(c.messages||[]).filter(m=>m.sentDate).length;
+  return['new','msg1','followup','mahnung1','mahnung2'][Math.min(s,4)];
+}
+function getNextDue(c){
+  const msgs=c.messages||[];const sent=msgs.filter(m=>m.sentDate);
+  if(!sent.length||sent.length>=4)return null;
+  return addDays(sent[sent.length-1].sentDate,STEPS[sent.length-1].nextDelay);
+}
+
+// ══ "BEI WEM" LOGIC ══
+function getBeiWem(c){
+  const s=getStatus(c);
+  if(s==='resolved')return{stage:'✅ Gezahlt',who:null,color:'#10B981'};
+  if(s==='inkasso')return{stage:'⚖️ Inkasso',who:null,color:'#7C3AED'};
+  if(s==='aufhebung')return{stage:'🤝 Aufhebung',who:null,color:'#0891B2'};
+  if(s==='anwalt')return{stage:'⚠️ Anwalt/Widerruf',who:null,color:'#DC2626'};
+  if(c.stornoFlow&&(c.stornoFlow.step1||c.stornoFlow.step2||c.stornoFlow.step3)){
+    const j=getJustin();return{stage:'🔄 Storno-Gespräch',who:j,color:'#DC2626'};
+  }
+  if(c.respondedType==='storno'){const j=getJustin();return{stage:'🔄 Storno',who:j,color:'#DC2626'};}
+  if(c.respondedType==='ratenpause'){const sa=getSandra();return{stage:'⏸ Ratenpause',who:sa,color:'#10B981'};}
+  if(c.respondedType==='closer'&&c.closerAssigned){const cl=getTeam(c.closerAssigned);return{stage:'📞 Beim Closer',who:cl,color:'#3B82F6'};}
+  if(c.respondedType==='ablefy'){return{stage:'💳 Zahlung ausstehend',who:null,color:'#F59E0B'};}
+  if(c.closerAssigned){const cl=getTeam(c.closerAssigned);return{stage:'👤 Zugewiesen',who:cl,color:'#6366F1'};}
+  // email flow
+  const sent=(c.messages||[]).filter(m=>m.sentDate).length;
+  const step=STEPS[Math.min(sent,3)];
+  const due=getNextDue(c);const dtd=due?daysDiff(due):null;
+  let dueStr='';
+  if(due){if(dtd<0)dueStr=`<span class="overdue"> ⏰ Überfällig ${Math.abs(dtd)}d</span>`;else if(dtd===0)dueStr=`<span class="due-soon"> ⚡ Heute!</span>`;else if(dtd<=2)dueStr=`<span class="due-soon"> in ${dtd}d</span>`;}
+  return{stage:`📧 ${step.label}${dueStr}`,who:null,color:'#6366F1',isEmailFlow:true};
+}
+
+// ══ NOTIFICATIONS ══
+function createNotif(forUserId,type,clientId,clientName,message,fromUserId){
+  const n={id:uid(),forUserId,type,clientId,clientName,message,fromUserId:fromUserId||activeUserId,date:today(),read:false};
+  notifications.unshift(n);
+  if(notifications.length>200)notifications=notifications.slice(0,200);
+  saveNotifs();updateNotifBadge();
+  // auto-send email to recipient
+  const tm=getTeam(forUserId);
+  if(tm&&tm.email){
+    const fromTm=getTeam(fromUserId||activeUserId);
+    const fromName=fromTm?fromTm.name:'Mahnung Dashboard';
+    const emailBody=`${message}\n\nKunde: ${clientName}\nDatum: ${fmtDate(today())}\n\nVon: ${fromName}\n---\nMahnung Dashboard – EcomAccelerator`;
+    const gmailUrl=`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(tm.email)}&su=${encodeURIComponent('[Mahnung Dashboard] '+message)}&body=${encodeURIComponent(emailBody)}`;
+    // store on notification for later sending
+    n.emailUrl=gmailUrl;saveNotifs();
+  }
+}
+function updateNotifBadge(){
+  const unread=notifications.filter(n=>(!activeUserId&&false)||(n.forUserId===activeUserId&&!n.read)).length;
+  const badge=document.getElementById('notifBadge');
+  badge.textContent=unread;badge.className='notif-badge'+(unread>0?' show':'');
+}
+function toggleNotifPanel(){
+  document.getElementById('notifPanel').classList.toggle('open');
+  document.getElementById('notifOverlay').classList.toggle('open');
+  renderNotifPanel();
+}
+function closeNotifPanel(){document.getElementById('notifPanel').classList.remove('open');document.getElementById('notifOverlay').classList.remove('open');}
+function renderNotifPanel(){
+  const myNotifs=activeUserId?notifications.filter(n=>n.forUserId===activeUserId):notifications;
+  document.getElementById('notifPanelFor').textContent=activeUserId?`für ${getTeam(activeUserId)?.name||'?'}`:'(Kein Benutzer gewählt)';
+  const list=document.getElementById('notifList');
+  if(!myNotifs.length){list.innerHTML='<div class="notif-empty">Keine Benachrichtigungen 🎉</div>';return;}
+  const typeClass={assignment:'unread',closer:'unread',storno:'unread-storno',ratenpause:'unread',mention:'unread',urgent:'unread-urgent'};
+  list.innerHTML=myNotifs.map(n=>{
+    const fromTm=getTeam(n.fromUserId);
+    const cls=n.read?'notif-item':`notif-item ${typeClass[n.type]||'unread'}`;
+    const emailBtn=n.emailUrl?`<button class="btn btn-gmail btn-xs" onclick="openNotifEmail('${n.id}')">📧 Senden</button>`:'';
+    return`<div class="${cls}" onclick="markRead('${n.id}')">
+      <div class="notif-meta"><span class="notif-icon">${n.type==='storno'?'🔄':n.type==='ratenpause'?'⏸':n.type==='mention'?'@':'📋'}</span><span class="notif-from">von ${fromTm?fromTm.name:'System'} · ${fmtDate(n.date)}</span></div>
+      <div class="notif-msg">${n.message}</div>
+      <div class="notif-client">👤 ${n.clientName}</div>
+      <div class="notif-actions">
+        <button class="btn btn-ghost btn-xs" onclick="focusClient('${n.clientId}');closeNotifPanel()">Zum Kunden</button>
+        ${emailBtn}
+        ${!n.read?`<button class="btn btn-gray btn-xs" onclick="markRead('${n.id}')">Gelesen</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function markRead(nid){const n=notifications.find(x=>x.id===nid);if(n)n.read=true;saveNotifs();updateNotifBadge();renderNotifPanel();}
+function markAllRead(){notifications.filter(n=>n.forUserId===activeUserId).forEach(n=>n.read=true);saveNotifs();updateNotifBadge();renderNotifPanel();toast('✅ Alle als gelesen markiert');}
+function openNotifEmail(nid){const n=notifications.find(x=>x.id===nid);if(n&&n.emailUrl)window.open(n.emailUrl,'_blank');markRead(nid);}
+function focusClient(id){document.getElementById('searchInput').value='';closeModal('noteModal');closeModal('responseModal');renderTable();const rows=document.querySelectorAll('tbody tr');rows.forEach(r=>{if(r.querySelector(`[onclick*="${id}"]`))r.style.background='#EFF6FF';});}
+
+// ══ USER SWITCHER ══
+function switchUser(id){
+  activeUserId=id||null;
+  localStorage.setItem('ec_activeUser',id||'');
+  const tm=getTeam(id);
+  const av=document.getElementById('headerAvatar');
+  if(tm){av.textContent=tm.name.charAt(0);av.style.background=tm.color;}
+  else{av.textContent='?';av.style.background='#94A3B8';}
+  updateNotifBadge();
+  if(id) toast(`👋 Angemeldet als ${tm?.name||id}`);
+}
+function populateUserSelect(){
+  const sel=document.getElementById('activeUserSelect');
+  sel.innerHTML='<option value="">Wer bin ich?</option>'+team.map(t=>`<option value="${t.id}">${t.name} (${t.role})</option>`).join('');
+  if(activeUserId)sel.value=activeUserId;
+}
+function populateTeamDropdowns(){
+  const allOpts='<option value="">— Nicht zugewiesen —</option>'+team.map(t=>`<option value="${t.id}">${t.name} (${t.role})</option>`).join('');
+  document.getElementById('f-closer').innerHTML=allOpts;
+  const teamFilter='<option value="all">Alle Mitarbeiter</option>'+team.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  document.getElementById('sfTeam').innerHTML=teamFilter;
+  const closerOpts=team.filter(t=>['Closer','Storno'].includes(t.role)).map(t=>`<option value="${t.id}">${t.name} (${t.role})</option>`).join('');
+  document.getElementById('res-closer-sel').innerHTML=closerOpts;
+  populateUserSelect();
+}
+
+// ══ @MENTION ══
+function handleMentionInput(el,fieldId){
+  const val=el.value,pos=el.selectionStart;
+  const before=val.slice(0,pos);const atIdx=before.lastIndexOf('@');
+  if(atIdx>=0&&!before.slice(atIdx+1).includes(' ')){
+    mentionQuery=before.slice(atIdx+1).toLowerCase();mentionField=fieldId;mentionStart=atIdx;
+    const matches=team.filter(t=>t.name.toLowerCase().startsWith(mentionQuery));
+    const box=document.getElementById(`ms-${fieldId}`);
+    if(matches.length){
+      box.innerHTML=matches.map(t=>`<div class="mention-opt" onclick="insertMention('${t.id}','${fieldId}')"><div class="avatar av20" style="background:${t.color}">${t.name.charAt(0)}</div>${t.name} <span style="color:#94A3B8;font-size:10px">${t.role}</span></div>`).join('');
+      box.style.display='block';
+    } else box.style.display='none';
+  } else {document.getElementById(`ms-${fieldId}`)&&(document.getElementById(`ms-${fieldId}`).style.display='none');}
+}
+function handleMentionKey(e,fieldId){if(e.key==='Escape'){const b=document.getElementById(`ms-${fieldId}`);if(b)b.style.display='none';}}
+function insertMention(teamId,fieldId){
+  const tm=getTeam(teamId);if(!tm)return;
+  const el=document.getElementById(fieldId);const val=el.value;const pos=el.selectionStart;
+  const newVal=val.slice(0,mentionStart)+'@'+tm.name+' '+val.slice(pos);
+  el.value=newVal;el.focus();el.setSelectionRange(mentionStart+tm.name.length+2,mentionStart+tm.name.length+2);
+  document.getElementById(`ms-${fieldId}`).style.display='none';
+}
+function extractMentions(text){
+  const mentions=[];const re=/@(\w+)/g;let m;
+  while((m=re.exec(text))!==null){const tm=team.find(t=>t.name.toLowerCase()===m[1].toLowerCase());if(tm&&!mentions.includes(tm.id))mentions.push(tm.id);}
+  return mentions;
+}
+
+// ══ ADD / EDIT ══
+function openAddModal(editId){
+  document.getElementById('f-editId').value=editId||'';
+  if(editId){
+    const c=clients.find(x=>x.id===editId);
+    document.getElementById('addModalTitle').textContent='Kunden bearbeiten';
+    document.getElementById('f-name').value=c.name;document.getElementById('f-email').value=c.email||'';
+    document.getElementById('f-phone').value=c.phone||'';document.getElementById('f-raten').value=c.raten||'';
+    document.getElementById('f-betrag').value=c.betrag||'';document.getElementById('f-notes').value=c.notes||'';
+    document.getElementById('f-closer').value=c.closerAssigned||'';
+    const sentCount=(c.messages||[]).filter(m=>m.sentDate).length;
+    document.getElementById('f-mahnstufe').value=String(sentCount);
+    document.getElementById('f-mahnstufe').disabled=true; // don't change steps on edit
+  } else {
+    document.getElementById('addModalTitle').textContent='Kunden hinzufügen';
+    ['f-name','f-email','f-phone','f-raten','f-betrag','f-notes'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f-closer').value='';
+    document.getElementById('f-mahnstufe').value='0';
+    document.getElementById('f-mahnstufe').disabled=false;
+  }
+  openModal('addModal');
+}
+function saveClient(){
+  const name=document.getElementById('f-name').value.trim(),email=document.getElementById('f-email').value.trim();
+  if(!name||!email){toast('⚠️ Name und E-Mail erforderlich','warn');return;}
+  const mahnstufe=parseInt(document.getElementById('f-mahnstufe').value)||0;
+  const data={name,email,phone:document.getElementById('f-phone').value.trim(),raten:document.getElementById('f-raten').value.trim(),betrag:document.getElementById('f-betrag').value,notes:document.getElementById('f-notes').value.trim(),closerAssigned:document.getElementById('f-closer').value||null};
+  const editId=document.getElementById('f-editId').value;
+  if(editId){
+    const c=clients.find(x=>x.id===editId);const prevCloser=c.closerAssigned;Object.assign(c,data);
+    if(data.closerAssigned&&data.closerAssigned!==prevCloser){
+      const tm=getTeam(data.closerAssigned);if(tm){c.log.push({date:today(),text:`👤 Zugewiesen an ${tm.name}`});createNotif(data.closerAssigned,'assignment',c.id,c.name,`${c.name} wurde dir zugewiesen`);}
+    }
+    c.log.push({date:today(),text:'✏️ Angaben aktualisiert'});
+  } else {
+    // Build messages array based on Mahnstufe
+    // We don't know the exact past send dates, so we backdate them by the minimum required intervals
+    const msgs=[{num:1,sentDate:null},{num:2,sentDate:null},{num:3,sentDate:null},{num:4,sentDate:null}];
+    const delays=[0,3,7,7]; // cumulative days: step1=today-17, step2=today-14, step3=today-7, step4=today
+    if(mahnstufe>0){
+      // Calculate backdated dates so next step is due ~today
+      // e.g. if mahnstufe=2 (followup sent), then mahnung1 is due in 7 days from followup → followup was ~today
+      const totalBack=[0,3,10,17]; // days before today that step N was "sent" to make next step due ~today
+      for(let i=0;i<mahnstufe;i++){
+        const backDays=mahnstufe<4?totalBack[mahnstufe]-totalBack[i]:totalBack[i];
+        const d=new Date();d.setDate(d.getDate()-(totalBack[mahnstufe]-totalBack[i]||1));
+        msgs[i].sentDate=d.toISOString().split('T')[0];
+      }
+    }
+    const logEntries=[{date:today(),text:'📋 Zur Mahnliste hinzugefügt'}];
+    if(mahnstufe>0){
+      const stepNames=['Erste E-Mail','Mahnung 1','Mahnung 2','Mahnung 3'];
+      for(let i=0;i<mahnstufe;i++){logEntries.push({date:msgs[i].sentDate,text:`${STEPS[i].icon} ${stepNames[i]} (vorab gesetzt, Mahnstufe ${mahnstufe})`});}
+    }
+    const newC={id:uid(),...data,status:'new',addedDate:today(),messages:msgs,responded:false,respondedDate:null,respondedType:null,inkassoDate:null,stornoFlow:{step1:false,step2:false,step3:false,outcome:null},log:logEntries};
+    clients.push(newC);
+    if(data.closerAssigned){const tm=getTeam(data.closerAssigned);if(tm)createNotif(data.closerAssigned,'assignment',newC.id,newC.name,`Neuer Kunde zugewiesen: ${newC.name}`);}
+  }
+  save();renderAll();closeModal('addModal');toast(editId?'✏️ Gespeichert':'✅ Kunde hinzugefügt');
+}
+
+// ══ SEND EMAIL ══
+function openSendModal(id){
+  const c=clients.find(x=>x.id===id);
+  const sent=(c.messages||[]).filter(m=>m.sentDate).length,nextNum=sent+1;
+  if(nextNum>4){toast('⚠️ Alle 4 E-Mails gesendet');return;}
+  activeSendId=id;const tpl=EMAIL_TPL[nextNum],step=STEPS[nextNum-1];
+  const body=tpl.body(c.name,c.raten),subject=tpl.subject();
+  activeEmailBody=body;activeGmailUrl=c.email?`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(c.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`:null;
+  document.getElementById('sendModalTitle').textContent=`${step.icon} ${tpl.label} an ${c.name}`;
+  document.getElementById('sendModalDesc').textContent=nextNum<4?`Vorschau — In Gmail öffnen, senden, bestätigen.`:`⚠️ Letzte Mahnung. Kein Inkasso ohne Sandra-Freigabe.`;
+  document.getElementById('em-to').textContent=c.email||'(keine E-Mail)';
+  document.getElementById('em-subject').textContent=subject;document.getElementById('em-body').textContent=body;
+  document.getElementById('gmailBtn').style.display=c.email?'inline-flex':'none';
+  openModal('sendModal');
+}
+function openGmail(){if(activeGmailUrl)window.open(activeGmailUrl,'_blank');}
+function copyEmailText(){nav2clip(activeEmailBody,'📋 Text kopiert!');}
+function confirmSent(){
+  const c=clients.find(x=>x.id===activeSendId);
+  const idx=(c.messages||[]).findIndex(m=>!m.sentDate);if(idx===-1)return;
+  const num=c.messages[idx].num;c.messages[idx].sentDate=today();
+  const step=STEPS[num-1];c.log.push({date:today(),text:`${step.icon} ${step.label} gesendet an ${c.email||'?'}`});
+  save();renderAll();closeModal('sendModal');toast(`✅ ${step.label} dokumentiert`);checkAlerts();
+}
+
+// ══ RESPONSE ══
+function openResponseModal(id){
+  document.getElementById('res-clientId').value=id;document.getElementById('res-note').value='';
+  document.getElementById('ms-res-note').style.display='none';
+  activeResType=null;
+  ['bezahlt','ablefy','ratenpause','closer','storno'].forEach(k=>document.getElementById(`rc-${k}`)?.classList.remove('sel'));
+  document.getElementById('ablfyBox').style.display='none';document.getElementById('closerBox').style.display='none';
+  const c=clients.find(x=>x.id===id);
+  document.getElementById('resModalTitle').textContent=`Antwort von ${c.name}`;
+  document.getElementById('res-closer-sel').innerHTML=team.filter(t=>['Closer','Storno'].includes(t.role)).map(t=>`<option value="${t.id}">${t.name} (${t.role})</option>`).join('');
+  document.getElementById('res-closer-sel').onchange=buildCloserMsg;
+  openModal('responseModal');
+}
+function selRes(type){
+  activeResType=type;
+  ['bezahlt','ablefy','ratenpause','closer','storno'].forEach(k=>document.getElementById(`rc-${k}`)?.classList.toggle('sel',k===type));
+  document.getElementById('ablfyBox').style.display=type==='ablefy'?'block':'none';
+  document.getElementById('closerBox').style.display=type==='closer'?'block':'none';
+  if(type==='closer')buildCloserMsg();
+}
+function buildCloserMsg(){
+  const id=document.getElementById('res-clientId').value;const c=clients.find(x=>x.id===id);
+  const closerId=document.getElementById('res-closer-sel').value;const cl=getTeam(closerId);
+  if(!cl){document.getElementById('closerMsgWrap').style.display='none';return;}
+  const sent=(c.messages||[]).filter(m=>m.sentDate).length;
+  const msg=`Hey ${cl.slackHandle||cl.name} 👋\n\nKunde zur Übernahme:\n• Name: ${c.name}\n• E-Mail: ${c.email||'—'}\n• Telefon: ${c.phone||'—'}\n• Offene Rate(n): ${c.raten||'—'}\n• ${sent}/4 Mahnungs-E-Mails gesendet\n\nBitte übernehmen und im Dashboard dokumentieren. Danke!`;
+  document.getElementById('closerSlackMsg').textContent=msg;
+  document.getElementById('closerMsgWrap').style.display='block';
+  const gmailUrl=cl.email?`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(cl.email)}&su=${encodeURIComponent('[Mahnung] Kunde zugewiesen: '+c.name)}&body=${encodeURIComponent(msg.replace(/•/g,'-'))}`:null;
+  document.getElementById('closerGmailBtn').style.display=gmailUrl?'inline-flex':'none';
+  document.getElementById('closerGmailBtn')._url=gmailUrl;
+}
+function openCloserGmail(){const btn=document.getElementById('closerGmailBtn');if(btn._url)window.open(btn._url,'_blank');}
+function copyAblefy(){nav2clip(ABLEFY,'📋 Ablefy-Link kopiert!');}
+function copyCloserMsg(){nav2clip(document.getElementById('closerSlackMsg').textContent,'📋 Kopiert!');}
+function saveResponse(){
+  if(!activeResType){toast('⚠️ Bitte Ergebnis wählen','warn');return;}
+  const id=document.getElementById('res-clientId').value,note=document.getElementById('res-note').value.trim();
+  const c=clients.find(x=>x.id===id);
+  // handle @mentions in note
+  if(note){
+    const mentions=extractMentions(note);
+    mentions.forEach(tmId=>{const tm=getTeam(tmId);if(tm)createNotif(tmId,'mention',id,c.name,`@${tm.name} wurde in einer Notiz erwähnt: "${note.substring(0,80)}"`);});
+  }
+  if(activeResType==='bezahlt'){if(note)c.log.push({date:today(),text:`📝 ${note}`});save();closeModal('responseModal');quickBezahlt(id);return;}
+  if(activeResType==='storno'){save();closeModal('responseModal');openStornoModal(id);return;}
+  c.responded=true;c.respondedDate=today();c.respondedType=activeResType;c.status='responded';
+  const closerId=activeResType==='closer'?document.getElementById('res-closer-sel').value:null;
+  if(closerId){c.closerAssigned=closerId;const cl=getTeam(closerId);if(cl){c.log.push({date:today(),text:`👤 Weitergeleitet an ${cl.name}`});createNotif(closerId,'closer',id,c.name,`${c.name} wurde zu dir weitergeleitet`);}}
+  if(activeResType==='ratenpause'){const sa=getSandra();if(sa&&sa.id)createNotif(sa.id,'ratenpause',id,c.name,`Ratenpause für ${c.name} vereinbart — bitte prüfen`);}
+  c.log.push({date:today(),text:`💬 Antwort: ${RES_LBL[activeResType]}`});
+  if(note)c.log.push({date:today(),text:`📝 ${note}`});
+  save();renderAll();closeModal('responseModal');toast(`💬 Dokumentiert: ${RES_LBL[activeResType]}`);checkAlerts();
+}
+
+// ══ STORNO ══
+function openStornoModal(id){
+  activeStornoId=id;const c=clients.find(x=>x.id===id);
+  if(!c.stornoFlow)c.stornoFlow={step1:false,step2:false,step3:false,outcome:null};
+  stornoSteps={1:c.stornoFlow.step1||false,2:c.stornoFlow.step2||false,3:c.stornoFlow.step3||false};
+  document.getElementById('stornoTitle').textContent=`Storno-Flow: ${c.name}`;
+  document.getElementById('stornoDesc').textContent=`Storno-Prozess für ${c.name}. Führe alle 3 Schritte durch.`;
+  // Step 1
+  const sb=STORNO_TPL.body(c.name);
+  document.getElementById('st-to').textContent=c.email||'(keine E-Mail)';
+  document.getElementById('st-body').textContent=sb;
+  const sUrl=c.email?`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(c.email)}&su=${encodeURIComponent(STORNO_TPL.subject())}&body=${encodeURIComponent(sb)}`:null;
+  document.getElementById('stornoGmailBtn').style.display=sUrl?'inline-flex':'none';
+  document.getElementById('stornoGmailBtn')._url=sUrl;
+  // Step 2 form
+  const[fn,...ln]=c.name.split(' ');const td=new Date();
+  const fUrl=STORNO_FORM+'&'+[`${SF.vn}=${encodeURIComponent(fn)}`,`${SF.nn}=${encodeURIComponent(ln.join(' '))}`,`${SF.em}=${encodeURIComponent(c.email||'')}`,`${SF.tel}=${encodeURIComponent(c.phone||'')}`,`${SF.cl}=${encodeURIComponent(c.closerAssigned?getTeam(c.closerAssigned)?.name||'':'EcomAccelerator')}`,`${SF.dy}=${td.getFullYear()}`,`${SF.dm}=${td.getMonth()+1}`,`${SF.dd}=${td.getDate()}`,`${SF.gr}=${encodeURIComponent('Stornoantrag')}`].join('&');
+  document.getElementById('stornoFormBtn')._url=fUrl;
+  // Step 3 Justin
+  const j=getJustin();const jMsg=`Hey ${j.slackHandle||'@justin'} 👋\n\nKunde für Storno-Gespräch:\n• Name: ${c.name}\n• E-Mail: ${c.email||'—'}\n• Telefon: ${c.phone||'—'}\n• Stornoeingang: ${fmtDate(today())}\n\nStornoformular wurde ausgefüllt. Termin vereinbaren:\n👉 https://calendly.com/justin-strategiegespraeche/feedback-gesprach\n\nBitte Outcome im Dashboard eintragen.`;
+  document.getElementById('justinMsg').textContent=jMsg;
+  const jUrl=j.email?`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(j.email)}&su=${encodeURIComponent('Storno-Gespräch: '+c.name)}&body=${encodeURIComponent(jMsg)}`:null;
+  document.getElementById('justinGmailBtn').style.display=jUrl?'inline-flex':'none';
+  document.getElementById('justinGmailBtn')._url=jUrl;
+  updateStornoUI();
+  document.getElementById('stornoOutcomeBox').style.display=stornoSteps[1]&&stornoSteps[2]&&stornoSteps[3]?'block':'none';
+  if(c.stornoFlow.outcome)document.getElementById('stornoOutcomeSel').value=c.stornoFlow.outcome;
+  if(!c.responded){c.status='responded';c.responded=true;c.respondedDate=today();c.respondedType='storno';c.log.push({date:today(),text:'🔄 Storno-Flow gestartet'});save();}
+  // notify Justin
+  if(j&&j.id)createNotif(j.id,'storno',id,c.name,`Neuer Storno-Fall: ${c.name} (${c.email||'?'})`);
+  openModal('stornoModal');
+}
+function openStornoGmail(){const b=document.getElementById('stornoGmailBtn');if(b._url)window.open(b._url,'_blank');}
+function openStornoForm(){const b=document.getElementById('stornoFormBtn');if(b._url)window.open(b._url,'_blank');}
+function openJustinGmail(){const b=document.getElementById('justinGmailBtn');if(b._url)window.open(b._url,'_blank');}
+function copyJustin(){nav2clip(document.getElementById('justinMsg').textContent,'📋 Nachricht für Justin kopiert!');}
+function doneStornoStep(step){
+  stornoSteps[step]=true;const c=clients.find(x=>x.id===activeStornoId);c.stornoFlow[`step${step}`]=true;
+  const lbk={1:'✉️ Storno-E-Mail gesendet',2:'📋 Stornoformular ausgefüllt',3:'📢 Justin benachrichtigt'};
+  c.log.push({date:today(),text:lbk[step]});save();updateStornoUI();
+  if(stornoSteps[1]&&stornoSteps[2]&&stornoSteps[3]){document.getElementById('stornoOutcomeBox').style.display='block';toast('✅ Alle Schritte erledigt! Bitte Outcome eintragen.');}else toast(`✅ Schritt ${step} erledigt`);
+}
+function updateStornoUI(){
+  [1,2,3].forEach(i=>{const ne=document.getElementById(`sn${i}`),de=document.getElementById(`sd${i}`);if(!ne)return;if(stornoSteps[i]){ne.className='s-num done';ne.textContent='✓';if(de)de.style.display='inline';}else{ne.className='s-num';ne.textContent=String(i);if(de)de.style.display='none';}});
+}
+function saveStornoOutcome(){
+  const outcome=document.getElementById('stornoOutcomeSel').value;if(!outcome){toast('⚠️ Outcome wählen','warn');return;}
+  const c=clients.find(x=>x.id===activeStornoId);c.stornoFlow.outcome=outcome;
+  const lb={termin_gebucht:'Termin gebucht',bezahlt:'Bezahlt/Einigung',aufhebung:'Aufhebung vereinbart',inkasso:'→ Inkasso',anwalt:'Anwalt/Widerruf',storno_ok:'Storno akzeptiert'};
+  c.log.push({date:today(),text:`📊 Justin Outcome: ${lb[outcome]||outcome}`});
+  if(outcome==='aufhebung'){c.status='aufhebung';}
+  if(outcome==='anwalt'){c.status='anwalt';}
+  if(outcome==='inkasso'){c.status='inkasso';c.inkassoDate=today();}
+  save();renderAll();toast(`📊 Outcome: ${lb[outcome]||outcome}`);
+  if(outcome==='bezahlt'){quickBezahlt(c.id);return;}
+}
+
+// ══ QUICK ACTIONS ══
+let activeBezahltId=null;
+function quickBezahlt(id){
+  activeBezahltId=id;const c=clients.find(x=>x.id===id);
+  document.getElementById('bezahltDesc').textContent=`${c.name} — Wie viel wurde gezahlt?`;
+  document.getElementById('bezahltAmount').value=c.betrag||'';
+  document.getElementById('bezahltExpected').textContent=c.betrag?`€${parseFloat(c.betrag).toLocaleString('de-DE',{minimumFractionDigits:2})}`:'nicht hinterlegt';
+  openModal('bezahltModal');
+}
+function confirmBezahlt(){
+  const c=clients.find(x=>x.id===activeBezahltId);if(!c)return;
+  const amt=parseFloat(document.getElementById('bezahltAmount').value)||0;
+  c.status='resolved';c.paidAmount=amt;
+  c.log.push({date:today(),text:`✅ Bezahlt – €${amt.toLocaleString('de-DE',{minimumFractionDigits:2})} – Fall geschlossen`});
+  save();renderAll();closeModal('bezahltModal');toast('✅ Als bezahlt markiert');
+}
+function markInkasso(id){const c=clients.find(x=>x.id===id);c.status='inkasso';c.inkassoDate=today();c.log.push({date:today(),text:'⚖️ Inkasso eingeleitet'});save();renderAll();toast('⚖️ Inkasso eingeleitet');}
+function markAnwalt(id){if(!confirm('Als Anwalt/Widerruf markieren?'))return;const c=clients.find(x=>x.id===id);c.status='anwalt';c.log.push({date:today(),text:'⚠️ Anwalt/Widerruf – Fall markiert'});save();renderAll();toast('⚠️ Als Anwalt/Widerruf markiert');}
+function deleteClient(id){if(!confirm('Kunden entfernen?'))return;clients=clients.filter(x=>x.id!==id);save();renderAll();toast('🗑 Entfernt');}
+
+// ══ NOTES ══
+function openNoteModal(id){document.getElementById('noteClientId').value=id;document.getElementById('noteText').value='';document.getElementById('ms-noteText').style.display='none';openModal('noteModal');}
+function saveNote(){
+  const id=document.getElementById('noteClientId').value,text=document.getElementById('noteText').value.trim();if(!text)return;
+  const c=clients.find(x=>x.id===id);c.log.push({date:today(),text:`📝 ${text}`});
+  const mentions=extractMentions(text);
+  mentions.forEach(tmId=>{const tm=getTeam(tmId);if(tm)createNotif(tmId,'mention',id,c.name,`Du wurdest in einer Notiz erwähnt: "${text.substring(0,80)}"`);});
+  if(mentions.length>0)toast(`📋 Notiz gespeichert · ${mentions.map(id=>getTeam(id)?.name||'?').join(', ')} benachrichtigt`);
+  else toast('📝 Notiz gespeichert');
+  save();renderAll();closeModal('noteModal');
+}
+
+// ══ TEAM MANAGEMENT ══
+function openTeamModal(){renderTeamList();clearTmForm();populateTeamDropdowns();openModal('teamModal');}
+function renderTeamList(){
+  document.getElementById('teamList').innerHTML=team.map(t=>`<div class="team-row"><div class="avatar av32" style="background:${t.color}">${t.name.charAt(0)}</div><div class="tm-info"><div class="tm-name">${t.name} <span style="font-size:9px;background:#F1F5F9;padding:1px 5px;border-radius:8px;color:#64748B">${t.role}</span></div><div class="tm-role">${t.slackHandle||''}${t.email?' · '+t.email:''}</div></div><button class="btn btn-gray btn-xs" onclick="editTm('${t.id}')">✏️</button><button class="btn btn-gray btn-xs" onclick="delTm('${t.id}')" style="color:#EF4444">🗑</button></div>`).join('');
+}
+function editTm(id){const t=getTeam(id);document.getElementById('tm-editId').value=id;document.getElementById('tm-name').value=t.name;document.getElementById('tm-role').value=t.role;document.getElementById('tm-slack').value=t.slackHandle||'';document.getElementById('tm-email').value=t.email||'';}
+function delTm(id){if(!confirm('Entfernen?'))return;team=team.filter(t=>t.id!==id);saveTeam();renderTeamList();populateTeamDropdowns();}
+function saveTeamMember(){
+  const name=document.getElementById('tm-name').value.trim();if(!name){toast('⚠️ Name erforderlich','warn');return;}
+  const editId=document.getElementById('tm-editId').value;
+  const obj={name,role:document.getElementById('tm-role').value,slackHandle:document.getElementById('tm-slack').value.trim(),email:document.getElementById('tm-email').value.trim()};
+  if(editId){const t=getTeam(editId);Object.assign(t,obj);}
+  else{const colors=['#6366F1','#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899'];team.push({id:uid(),color:colors[team.length%colors.length],...obj});}
+  saveTeam();renderTeamList();populateTeamDropdowns();clearTmForm();toast('✅ Team gespeichert');
+}
+function clearTmForm(){['tm-name','tm-slack','tm-email'].forEach(id=>document.getElementById(id).value='');document.getElementById('tm-editId').value='';document.getElementById('tm-role').value='Closer';}
+
+// ══ RENDER ══
+function filterS(s){currentFilter=s;document.querySelectorAll('.kpi').forEach(k=>k.classList.remove('active-filter'));document.getElementById(`kpi-${s==='all'?'all':s}`)?.classList.add('active-filter');renderTable();}
+function renderAll(){updateKPIs();renderTable();checkAlerts();}
+function updateKPIs(){
+  const c={all:0,msg1:0,fu:0,m1:0,m2:0,ink:0,resolved:0,aufhebung:0,anwalt:0};
+  let totalPaid=0;
+  clients.forEach(x=>{const s=getStatus(x);c.all++;if(s==='msg1')c.msg1++;if(s==='followup')c.fu++;if(s==='mahnung1')c.m1++;if(s==='mahnung2')c.m2++;if(s==='inkasso')c.ink++;if(s==='resolved'){c.resolved++;totalPaid+=(x.paidAmount||0);}if(s==='aufhebung')c.aufhebung++;if(s==='anwalt')c.anwalt++;});
+  [{k:'all',id:'kv-all'},{k:'msg1',id:'kv-msg1'},{k:'fu',id:'kv-fu'},{k:'m1',id:'kv-m1'},{k:'m2',id:'kv-m2'},{k:'ink',id:'kv-ink'},{k:'resolved',id:'kv-resolved'},{k:'aufhebung',id:'kv-aufhebung'},{k:'anwalt',id:'kv-anwalt'}].forEach(({k,id})=>{const el=document.getElementById(id);if(el)el.textContent=c[k];});
+  const subEl=document.querySelector('#kpi-resolved .kpi-sub');
+  if(subEl)subEl.textContent=totalPaid>0?`€${totalPaid.toLocaleString('de-DE',{minimumFractionDigits:2})} eingegangen`:'Abgeschlossen';
+}
+function renderTable(){
+  const search=document.getElementById('searchInput').value.toLowerCase();
+  const sf=document.getElementById('sfStatus').value,tf=document.getElementById('sfTeam').value;
+  let data=clients.filter(c=>{
+    const s=getStatus(c);
+    return(currentFilter==='all'||s===currentFilter)&&(sf==='all'||s===sf)&&(tf==='all'||c.closerAssigned===tf)&&(!search||c.name.toLowerCase().includes(search)||(c.email||'').toLowerCase().includes(search));
+  }).sort((a,b)=>{
+    const sa=getStatus(a),sb=getStatus(b);if(sa==='mahnung2'&&sb!=='mahnung2')return -1;if(sb==='mahnung2'&&sa!=='mahnung2')return 1;if(sa==='anwalt'&&sb!=='anwalt')return -1;if(sb==='anwalt'&&sa!=='anwalt')return 1;
+    const da=getNextDue(a)||'9999-12-31',db=getNextDue(b)||'9999-12-31';return da.localeCompare(db);
+  });
+  document.getElementById('tableCount').textContent=`${data.length} Kunde${data.length===1?'':'n'}`;
+  const tbody=document.getElementById('tableBody'),empty=document.getElementById('emptyState');
+  if(!data.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=data.map(c=>{
+    const s=getStatus(c),cfg=STATUS_CFG[s]||STATUS_CFG.new;
+    const sent=(c.messages||[]).filter(m=>m.sentDate).length;
+    const pips=STEPS.map((_,i)=>`<div class="step-pip${i<sent?' done':i===sent&&!['responded','inkasso','resolved'].includes(s)?' active':''}" title="${STEPS[i].label}"></div>`).join('');
+    // "Bei wem"
+    const bw=getBeiWem(c);
+    let bwHtml=`<div class="bei-wem"><div class="bw-stage" style="color:${bw.color}">${bw.stage}</div>`;
+    if(bw.who){bwHtml+=`<div class="bw-who"><div class="avatar av16" style="background:${bw.who.color||'#94A3B8'}">${(bw.who.name||'?').charAt(0)}</div><span>${bw.who.name}</span></div>`;}
+    bwHtml+='</div>';
+    // actions
+    let acts='';
+    if(!['inkasso','resolved','aufhebung','anwalt'].includes(s)){
+      if(sent<4&&!c.responded){const st=STEPS[sent];acts+=`<button class="btn btn-gmail btn-xs" onclick="openSendModal('${c.id}')">${st.icon} ${st.label}</button>`;}
+      acts+=`<button class="btn btn-green btn-xs" onclick="openResponseModal('${c.id}')">💬 Antwort</button>`;
+      acts+=`<button class="btn btn-green btn-xs" onclick="quickBezahlt('${c.id}')">✅ Bezahlt</button>`;
+      if(sent>=4&&!c.responded)acts+=`<button class="btn btn-red btn-xs" onclick="markInkasso('${c.id}')">⚖️ Inkasso</button>`;
+      acts+=`<button class="btn btn-gray btn-xs" onclick="markAnwalt('${c.id}')" style="color:#DC2626" title="Anwalt/Widerruf">⚠️</button>`;
+      if(c.stornoFlow?.step1||c.stornoFlow?.step2||c.stornoFlow?.step3)acts+=`<button class="btn btn-purple btn-xs" onclick="openStornoModal('${c.id}')">🔄 Storno</button>`;
+    }
+    acts+=`<button class="btn btn-gray btn-xs" onclick="openNoteModal('${c.id}')">📝</button><button class="btn btn-gray btn-xs" onclick="openAddModal('${c.id}')">✏️</button><button class="btn btn-gray btn-xs" onclick="deleteClient('${c.id}')" style="color:#EF4444">🗑</button>`;
+    const ni=c.notes?`<span class="has-note" title="${(c.notes||'').substring(0,120)}">📝</span>`:'';
+    const resBadge=c.respondedType?`<span style="font-size:9px;background:#ECFDF5;color:#065F46;padding:1px 5px;border-radius:7px;font-weight:700;display:inline-block;margin-top:1px">${RES_LBL[c.respondedType]||''}</span>`:'';
+    const betrag=c.betrag?`<div style="font-weight:700;font-size:12px">€${parseFloat(c.betrag).toLocaleString('de-DE',{minimumFractionDigits:2})}</div>`:'';
+    return`<tr>
+      <td style="cursor:pointer;color:#CBD5E1;font-size:14px" onclick="toggleTL('${c.id}')">▸</td>
+      <td><div style="font-weight:700;font-size:12px">${c.name}${ni}</div><div style="font-size:10px;color:#94A3B8">✉ ${c.email||'—'}</div>${resBadge}</td>
+      <td>${betrag}<div style="font-size:11px;color:#64748B">${c.raten||''}</div></td>
+      <td><span class="badge ${cfg.b}">${cfg.i} ${cfg.t}</span></td>
+      <td><div class="step-track">${pips}</div><div style="font-size:10px;color:#94A3B8;margin-top:2px">${sent}/4</div></td>
+      <td>${bwHtml}</td>
+      <td><div style="display:flex;gap:3px;flex-wrap:wrap">${acts}</div></td>
+    </tr>
+    <tr id="tl-${c.id}" style="display:none"><td colspan="7" style="padding:0">
+      <div class="timeline">${c.log.slice().reverse().map(l=>`<div class="tl-row"><div class="tl-pip ${l.text.includes('gesendet')?'tl-s':l.text.includes('Antwort')||l.text.includes('Bezahlt')?'tl-r':l.text.includes('Inkasso')||l.text.includes('Storno')?'tl-k':'tl-n'}"></div><div class="tl-text">${l.text}<span class="tl-dt">— ${fmtDate(l.date)}</span></div></div>`).join('')}</div>
+    </td></tr>`;
+  }).join('');
+  updateKPIs();
+}
+function toggleTL(id){
+  const row=document.getElementById(`tl-${id}`),open=row.style.display!=='none';
+  document.querySelectorAll('[id^="tl-"]').forEach(r=>r.style.display='none');
+  document.querySelectorAll('tbody tr:not([id^="tl-"])').forEach(r=>{const fc=r.querySelector('td:first-child');if(fc&&fc.textContent.trim()==='▾')fc.textContent='▸';});
+  if(!open){row.style.display='';row.previousElementSibling.querySelector('td:first-child').textContent='▾';}
+}
+
+// ══ ALERTS ══
+function checkAlerts(){
+  const inkRdy=clients.filter(c=>(c.messages||[]).filter(m=>m.sentDate).length>=4&&!c.responded&&c.status!=='inkasso'&&c.status!=='resolved');
+  const ia=document.getElementById('inkassoAlert');
+  if(inkRdy.length){document.getElementById('inkassoAlertItems').innerHTML=inkRdy.map(c=>`<strong>${c.name}</strong> (${c.email||'?'}) — Letzte: ${fmtDate(c.messages[3]?.sentDate)} &nbsp;<a href="#" onclick="markInkasso('${c.id}');return false" style="color:#B91C1C;font-weight:700">→ Inkasso</a>`).join('<br>');ia.classList.add('show');}else ia.classList.remove('show');
+  const due=clients.filter(c=>{const d=getNextDue(c);return d&&daysDiff(d)<=0&&!['inkasso','resolved','responded'].includes(getStatus(c));});
+  const da=document.getElementById('dueAlert');
+  if(due.length){document.getElementById('dueAlertItems').innerHTML=due.map(c=>{const sent=(c.messages||[]).filter(m=>m.sentDate).length;const st=STEPS[sent];return`<strong>${c.name}</strong> → ${st?.label||'E-Mail'} fällig &nbsp;<button class="btn btn-gmail btn-xs" onclick="openSendModal('${c.id}')">Jetzt senden</button>`;}).join('<br>');da.classList.add('show');}else da.classList.remove('show');
+}
+
+// ══ DATA SYNC / EXPORT-IMPORT ══
+function updateLastSaved(){
+  const ts=localStorage.getItem('ec_lastSaved');
+  const el=document.getElementById('lastSavedLabel');
+  if(!el)return;
+  if(ts){
+    const d=new Date(ts);
+    const now=new Date();
+    const diff=Math.round((now-d)/60000);
+    let txt='';
+    if(diff<1)txt='Gerade gespeichert';
+    else if(diff<60)txt=`Gespeichert vor ${diff} Min.`;
+    else txt=`Gespeichert ${d.toLocaleDateString('de-DE')} ${d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})}`;
+    el.textContent=txt;
+  } else {
+    el.textContent='Noch keine Daten gespeichert';
+  }
+}
+function touchSaved(){
+  localStorage.setItem('ec_lastSaved',new Date().toISOString());
+  updateLastSaved();
+  // Notify other tabs on same browser
+  try{new BroadcastChannel('ec_sync').postMessage({type:'saved',ts:Date.now()});}catch(e){}
+}
+function exportData(){
+  const payload={clients,team,notifications,exportedAt:new Date().toISOString(),exportedBy:activeUserId?getTeam(activeUserId)?.name:'Unbekannt'};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`EA_Tracker_Export_${today()}.json`;a.click();
+  toast('💾 Daten exportiert — Datei mit Team teilen');
+}
+function importData(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.clients||!Array.isArray(data.clients)){toast('⚠️ Ungültige Datei','warn');return;}
+      const exportedBy=data.exportedBy||'Unbekannt';
+      const count=data.clients.length;
+      const exportedAt=data.exportedAt?new Date(data.exportedAt).toLocaleString('de-DE'):'?';
+      if(!confirm(`Daten importieren?\n\nExportiert von: ${exportedBy}\nDatum: ${exportedAt}\nKunden: ${count}\n\nAchtung: Deine aktuellen Daten werden überschrieben!`)){event.target.value='';return;}
+      clients=data.clients;
+      if(data.team&&Array.isArray(data.team))team=data.team;
+      if(data.notifications&&Array.isArray(data.notifications))notifications=data.notifications;
+      save();saveTeam();saveNotifs();touchSaved();
+      renderAll();populateTeamDropdowns();updateNotifBadge();
+      toast(`✅ ${count} Kunden importiert (Stand: ${exportedAt})`);
+    }catch(err){toast('⚠️ Fehler beim Importieren: '+err.message,'warn');}
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
+// Listen for sync from other tabs
+try{
+  const bc=new BroadcastChannel('ec_sync');
+  bc.onmessage=function(e){
+    if(e.data&&e.data.type==='saved'){
+      // Reload data from localStorage
+      load();loadTeam();loadNotifs();renderAll();updateLastSaved();updateNotifBadge();
+      toast('🔄 Daten wurden in einem anderen Tab aktualisiert');
+    }
+  };
+}catch(e){}
+
+// ══ EXPORT ══
+function exportCSV(){
+  const rows=[['Name','E-Mail','Telefon','Raten','Betrag','Status','1.Email','FollowUp','Mahnung1','Letzte','Antwort','Bei wem','Storno-Outcome','Inkasso','Notizen']];
+  clients.forEach(c=>{const msgs=c.messages||[{},{},{},{}];const bw=getBeiWem(c);rows.push([c.name,c.email||'',c.phone||'',c.raten||'',c.betrag||'',getStatus(c),fmtDate(msgs[0]?.sentDate),fmtDate(msgs[1]?.sentDate),fmtDate(msgs[2]?.sentDate),fmtDate(msgs[3]?.sentDate),c.respondedType?RES_LBL[c.respondedType]:'',bw.who?bw.who.name:(bw.stage||''),c.stornoFlow?.outcome||'',fmtDate(c.inkassoDate),(c.notes||'').replace(/\n/g,' ')]);});
+  const csv=rows.map(r=>r.map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download=`Mahnliste_${today()}.csv`;a.click();toast('📥 CSV exportiert');
+}
+
+// ══ HELPERS ══
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+function nav2clip(text,msg){navigator.clipboard.writeText(text).then(()=>toast(msg)).catch(()=>{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast(msg);});}
+function toast(msg,type='success'){const t=document.getElementById('toast');t.innerHTML=msg;t.className='toast show';t.style.borderLeft=type==='warn'?'4px solid #F59E0B':'4px solid #10B981';clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3500);}
+
+// ══ INIT ══
+load();loadTeam();loadNotifs();
+activeUserId=localStorage.getItem('ec_activeUser')||null;
+populateTeamDropdowns();updateLastSaved();
+setInterval(updateLastSaved,60000); // refresh "X Min. ago" every minute
+if(activeUserId){const tm=getTeam(activeUserId);if(tm){const av=document.getElementById('headerAvatar');av.textContent=tm.name.charAt(0);av.style.background=tm.color;}}
+updateNotifBadge();renderAll();
+// Load latest from Google Sheets in background
+setSyncIndicator('loading');
+loadFromSheets(function(ok){
+  if(ok){renderAll();populateTeamDropdowns();updateNotifBadge();setSyncIndicator('ok');}
+  else{setSyncIndicator('error');}
+});
+setInterval(checkAlerts,3600000);
+</script>
+</body>
+</html>
