@@ -581,7 +581,7 @@ function loadFromSheets(onDone){
     try{
       if(data&&Array.isArray(data.clients)){
         clients=data.clients;
-        if(data.team&&Array.isArray(data.team))team=data.team;
+        if(data.team&&Array.isArray(data.team)&&data.team.length>0)team=data.team;
         if(data.notifications&&Array.isArray(data.notifications))notifications=data.notifications;
         localStorage.setItem('ec_clients_v4',JSON.stringify(clients));
         localStorage.setItem('ec_team_v2',JSON.stringify(team));
@@ -622,7 +622,7 @@ function load(){
   const old=localStorage.getItem('mahn_clients_v3')||localStorage.getItem('mahnung_clients_v2')||localStorage.getItem('mahnung_clients');
   if(old){ clients=JSON.parse(old).map(c=>({...c,messages:c.messages||[{num:1,sentDate:null},{num:2,sentDate:null},{num:3,sentDate:null},{num:4,sentDate:null}],stornoFlow:c.stornoFlow||{step1:false,step2:false,step3:false,outcome:null}})); save(); }
 }
-function loadTeam(){ const d=localStorage.getItem('ec_team_v2'); team=d?JSON.parse(d):JSON.parse(JSON.stringify(DEFAULT_TEAM)); if(!d)saveTeam(); }
+function loadTeam(){ const d=localStorage.getItem('ec_team_v2'); const p=d?JSON.parse(d):null; team=(p&&p.length>0)?p:JSON.parse(JSON.stringify(DEFAULT_TEAM)); if(!p||!p.length)saveTeam(); }
 function loadNotifs(){ const d=localStorage.getItem('ec_notifs_v1'); notifications=d?JSON.parse(d):[]; }
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
