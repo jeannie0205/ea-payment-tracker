@@ -209,9 +209,35 @@ textarea{min-height:75px;resize:vertical}
 
 @media(max-width:1100px){.kpi-row{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:700px){.kpi-row{grid-template-columns:repeat(2,1fr)}.main{padding:10px}.form-row{grid-template-columns:1fr}}
+
+/* ── PASSWORD GATE ── */
+#pw-gate{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#1E293B 0%,#0F172A 100%);display:flex;align-items:center;justify-content:center}
+#pw-gate.hidden{display:none}
+.pw-box{background:white;border-radius:20px;padding:40px 36px;width:340px;box-shadow:0 24px 60px rgba(0,0,0,.4);text-align:center}
+.pw-logo{width:52px;height:52px;background:linear-gradient(135deg,#EF4444,#DC2626);border-radius:14px;display:flex;align-items:center;justify-content:center;color:white;font-size:24px;font-weight:800;margin:0 auto 16px}
+.pw-title{font-size:18px;font-weight:800;color:#0F172A;margin-bottom:4px}
+.pw-sub{font-size:12px;color:#94A3B8;margin-bottom:24px}
+.pw-input{width:100%;padding:11px 14px;border:2px solid #E2E8F0;border-radius:10px;font-size:18px;letter-spacing:4px;text-align:center;outline:none;color:#0F172A;font-weight:700;transition:border-color .15s}
+.pw-input:focus{border-color:#6366F1}
+.pw-input.shake{animation:shake .35s}
+.pw-btn{margin-top:14px;width:100%;padding:12px;background:#6366F1;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s}
+.pw-btn:hover{background:#4F46E5}
+.pw-error{margin-top:10px;font-size:12px;color:#EF4444;font-weight:600;min-height:18px}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 </style>
 </head>
 <body>
+<!-- ── PASSWORD GATE ── -->
+<div id="pw-gate">
+  <div class="pw-box">
+    <div class="pw-logo">💶</div>
+    <div class="pw-title">EA Payment Tracker</div>
+    <div class="pw-sub">Bitte Passwort eingeben</div>
+    <input id="pw-input" class="pw-input" type="password" placeholder="••••••••" maxlength="20" autocomplete="current-password">
+    <button class="pw-btn" onclick="checkPw()">Anmelden</button>
+    <div class="pw-error" id="pw-error"></div>
+  </div>
+</div>
 
 <!-- HEADER -->
 <div class="header">
@@ -516,6 +542,33 @@ textarea{min-height:75px;resize:vertical}
 <div class="toast" id="toast"></div>
 
 <script>
+// ══════════════════════════════════
+//  PASSWORD GATE
+// ══════════════════════════════════
+(function(){
+  const PW='19870502';
+  const gate=document.getElementById('pw-gate');
+  const inp=document.getElementById('pw-input');
+  if(sessionStorage.getItem('ea_auth')==='1'){gate.classList.add('hidden');return;}
+  gate.classList.remove('hidden');
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')checkPw();});
+  setTimeout(()=>inp.focus(),100);
+})();
+function checkPw(){
+  const inp=document.getElementById('pw-input');
+  const err=document.getElementById('pw-error');
+  if(inp.value==='19870502'){
+    sessionStorage.setItem('ea_auth','1');
+    document.getElementById('pw-gate').classList.add('hidden');
+    err.textContent='';
+  } else {
+    inp.classList.add('shake');
+    err.textContent='Falsches Passwort. Bitte erneut versuchen.';
+    inp.value='';
+    setTimeout(()=>{inp.classList.remove('shake');inp.focus();},400);
+  }
+}
+
 // ══════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════
