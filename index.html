@@ -84,7 +84,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .kpi-sub{font-size:10px;color:#94A3B8;margin-top:2px}
 .k-all{border-left-color:#6366F1}.k-msg1{border-left-color:#3B82F6}.k-fu{border-left-color:#F59E0B}
 .k-m1{border-left-color:#F97316}.k-m2{border-left-color:#EF4444}.k-ink{border-left-color:#7C3AED}
-.k-done{border-left-color:#10B981}.k-aufh{border-left-color:#0891B2}.k-anwalt{border-left-color:#DC2626}
+.k-done{border-left-color:#10B981}.k-aufh{border-left-color:#0891B2}.k-anwalt{border-left-color:#DC2626}.k-refused{border-left-color:#7F1D1D}
 
 /* ── TABLE ── */
 .card{background:white;border-radius:11px;border:1px solid #E2E8F0;overflow:hidden;margin-bottom:16px}
@@ -109,6 +109,7 @@ td{padding:9px 11px;font-size:12px;vertical-align:middle}
 .b-done{background:#F0FDF4;color:#166534}
 .b-aufh{background:#ECFEFF;color:#155E75}
 .b-anwalt{background:#FEF2F2;color:#991B1B}
+.b-refused{background:#FFF1F2;color:#7F1D1D;font-weight:800}
 
 /* ── TEAM CHIP / AVATAR ── */
 .avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-weight:800;color:white;flex-shrink:0}
@@ -286,6 +287,7 @@ textarea{min-height:75px;resize:vertical}
     <div class="kpi k-done" onclick="filterS('resolved')" id="kpi-resolved"><div class="kpi-icon">✅</div><div class="kpi-label">Gezahlt</div><div class="kpi-value" id="kv-resolved">0</div><div class="kpi-sub">Abgeschlossen</div></div>
     <div class="kpi k-aufh" onclick="filterS('aufhebung')" id="kpi-aufhebung"><div class="kpi-icon">🤝</div><div class="kpi-label">Aufhebung</div><div class="kpi-value" id="kv-aufhebung">0</div><div class="kpi-sub">Einigung</div></div>
     <div class="kpi k-anwalt" onclick="filterS('anwalt')" id="kpi-anwalt"><div class="kpi-icon">⚠️</div><div class="kpi-label">Anwalt/Widerruf</div><div class="kpi-value" id="kv-anwalt">0</div><div class="kpi-sub">Rechtlich</div></div>
+    <div class="kpi k-refused" onclick="filterS('zahlung_verweigert')" id="kpi-zahlung_verweigert"><div class="kpi-icon">🚫</div><div class="kpi-label">Fall geschlossen</div><div class="kpi-value" id="kv-refused">0</div><div class="kpi-sub">Zahlung verweigert</div></div>
   </div>
 
   <!-- TABLE -->
@@ -306,6 +308,7 @@ textarea{min-height:75px;resize:vertical}
           <option value="resolved">Gezahlt</option>
           <option value="aufhebung">Aufhebung</option>
           <option value="anwalt">Anwalt / Widerruf</option>
+          <option value="zahlung_verweigert">🚫 Fall geschlossen (Zahlung verweigert)</option>
         </select>
         <select id="sfTeam" onchange="renderTable()" style="font-size:11px;padding:5px 9px;border-radius:8px;border:1px solid #E2E8F0">
           <option value="all">Alle Mitarbeiter</option>
@@ -451,7 +454,7 @@ textarea{min-height:75px;resize:vertical}
       </div>
       <div id="stornoOutcomeBox" style="display:none;background:#F0FDF4;border:1px solid #86EFAC;border-radius:9px;padding:12px;margin-top:4px">
         <div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:8px">📊 Justin's Outcome eintragen</div>
-        <select id="stornoOutcomeSel" style="margin-bottom:7px;font-size:12px"><option value="">— Noch offen —</option><option value="termin_gebucht">Termin gebucht</option><option value="bezahlt">Bezahlt / Einigung</option><option value="aufhebung">Aufhebung vereinbart</option><option value="inkasso">→ Inkasso</option><option value="anwalt">Anwalt / Widerruf</option><option value="storno_ok">Storno akzeptiert</option></select>
+        <select id="stornoOutcomeSel" style="margin-bottom:7px;font-size:12px"><option value="">— Noch offen —</option><option value="termin_gebucht">Termin gebucht</option><option value="bezahlt">Bezahlt / Einigung</option><option value="aufhebung">Aufhebung vereinbart</option><option value="inkasso">→ Inkasso</option><option value="anwalt">Anwalt / Widerruf</option><option value="storno_ok">Storno akzeptiert</option><option value="zahlung_verweigert">🚫 Zahlung verweigert / Anwalt gedroht — Fall schließen</option></select>
         <button class="btn btn-green btn-sm" onclick="saveStornoOutcome()">💾 Outcome speichern</button>
       </div>
     </div>
@@ -540,7 +543,7 @@ const ABLEFY='https://myablefy.com/s/ecomaccelerator/payment/rGhsYxB-5AzQ5qxs4E9
 const STORNO_FORM='https://docs.google.com/forms/d/e/1FAIpQLSdCcrZnlevMQY0w1LOcNmi2cVPu7iPOaNQ-_fsN8G9a38j2lQ/viewform?usp=pp_url';
 const SF={vn:'entry.146539729',nn:'entry.473649501',em:'entry.768943071',tel:'entry.116701704',cl:'entry.1266214319',dy:'entry.1401337064_year',dm:'entry.1401337064_month',dd:'entry.1401337064_day',gr:'entry.1168966880'};
 const RES_LBL={bezahlt:'Bezahlt',ablefy:'Möchte zahlen (Ablefy)',ratenpause:'Ratenpause',closer:'Zum Closer weitergeleitet',storno:'An Justin (Storno)'};
-const STATUS_CFG={new:{t:'Neu',b:'b-new',i:'🔵'},msg1:{t:'1. E-Mail',b:'b-msg1',i:'💬'},followup:{t:'Mahnung 1',b:'b-fu',i:'📮'},mahnung1:{t:'Mahnung 2',b:'b-m1',i:'📮'},mahnung2:{t:'Mahnung 3',b:'b-m2',i:'🚨'},responded:{t:'Antwort',b:'b-resp',i:'💬'},inkasso:{t:'Inkasso',b:'b-ink',i:'⚖️'},resolved:{t:'Gezahlt',b:'b-done',i:'✅'},aufhebung:{t:'Aufhebung',b:'b-aufh',i:'🤝'},anwalt:{t:'Anwalt/Widerruf',b:'b-anwalt',i:'⚠️'}};
+const STATUS_CFG={new:{t:'Neu',b:'b-new',i:'🔵'},msg1:{t:'1. E-Mail',b:'b-msg1',i:'💬'},followup:{t:'Mahnung 1',b:'b-fu',i:'📮'},mahnung1:{t:'Mahnung 2',b:'b-m1',i:'📮'},mahnung2:{t:'Mahnung 3',b:'b-m2',i:'🚨'},responded:{t:'Antwort',b:'b-resp',i:'💬'},inkasso:{t:'Inkasso',b:'b-ink',i:'⚖️'},resolved:{t:'Gezahlt',b:'b-done',i:'✅'},aufhebung:{t:'Aufhebung',b:'b-aufh',i:'🤝'},anwalt:{t:'Anwalt/Widerruf',b:'b-anwalt',i:'⚠️'},zahlung_verweigert:{t:'Fall geschlossen',b:'b-refused',i:'🚫'}};
 const DEFAULT_TEAM=[
   {id:'t1',name:'Jenny', role:'Executive Assistant',slackHandle:'@jenny', email:'',color:'#8B5CF6'},
   {id:'t2',name:'Sandra',role:'Buchhaltung',        slackHandle:'@sandra',email:'',color:'#10B981'},
@@ -636,7 +639,7 @@ function getSandra(){return team.find(t=>t.role==='Buchhaltung')||{name:'Sandra'
 
 // ══ STATUS ══
 function getStatus(c){
-  if(['inkasso','resolved','responded','aufhebung','anwalt'].includes(c.status))return c.status;
+  if(['inkasso','resolved','responded','aufhebung','anwalt','zahlung_verweigert'].includes(c.status))return c.status;
   const s=(c.messages||[]).filter(m=>m.sentDate).length;
   return['new','msg1','followup','mahnung1','mahnung2'][Math.min(s,4)];
 }
@@ -968,11 +971,12 @@ function updateStornoUI(){
 function saveStornoOutcome(){
   const outcome=document.getElementById('stornoOutcomeSel').value;if(!outcome){toast('⚠️ Outcome wählen','warn');return;}
   const c=clients.find(x=>x.id===activeStornoId);c.stornoFlow.outcome=outcome;
-  const lb={termin_gebucht:'Termin gebucht',bezahlt:'Bezahlt/Einigung',aufhebung:'Aufhebung vereinbart',inkasso:'→ Inkasso',anwalt:'Anwalt/Widerruf',storno_ok:'Storno akzeptiert'};
+  const lb={termin_gebucht:'Termin gebucht',bezahlt:'Bezahlt/Einigung',aufhebung:'Aufhebung vereinbart',inkasso:'→ Inkasso',anwalt:'Anwalt/Widerruf',storno_ok:'Storno akzeptiert',zahlung_verweigert:'🚫 Zahlung verweigert / Anwalt gedroht — Fall geschlossen'};
   c.log.push({date:today(),text:`📊 Justin Outcome: ${lb[outcome]||outcome}`});
   if(outcome==='aufhebung'){c.status='aufhebung';}
   if(outcome==='anwalt'){c.status='anwalt';}
   if(outcome==='inkasso'){c.status='inkasso';c.inkassoDate=today();}
+  if(outcome==='zahlung_verweigert'){c.status='zahlung_verweigert';c.log.push({date:today(),text:'🚫 Fall geschlossen: Zahlung verweigert / Anwalt gedroht'});}
   save();renderAll();toast(`📊 Outcome: ${lb[outcome]||outcome}`);
   if(outcome==='bezahlt'){quickBezahlt(c.id);return;}
 }
@@ -1030,10 +1034,10 @@ function clearTmForm(){['tm-name','tm-slack','tm-email'].forEach(id=>document.ge
 function filterS(s){currentFilter=s;document.querySelectorAll('.kpi').forEach(k=>k.classList.remove('active-filter'));document.getElementById(`kpi-${s==='all'?'all':s}`)?.classList.add('active-filter');renderTable();}
 function renderAll(){updateKPIs();renderTable();checkAlerts();}
 function updateKPIs(){
-  const c={all:0,msg1:0,fu:0,m1:0,m2:0,ink:0,resolved:0,aufhebung:0,anwalt:0};
+  const c={all:0,msg1:0,fu:0,m1:0,m2:0,ink:0,resolved:0,aufhebung:0,anwalt:0,refused:0};
   let totalPaid=0;
-  clients.forEach(x=>{const s=getStatus(x);c.all++;if(s==='msg1')c.msg1++;if(s==='followup')c.fu++;if(s==='mahnung1')c.m1++;if(s==='mahnung2')c.m2++;if(s==='inkasso')c.ink++;if(s==='resolved'){c.resolved++;totalPaid+=(x.paidAmount||0);}if(s==='aufhebung')c.aufhebung++;if(s==='anwalt')c.anwalt++;});
-  [{k:'all',id:'kv-all'},{k:'msg1',id:'kv-msg1'},{k:'fu',id:'kv-fu'},{k:'m1',id:'kv-m1'},{k:'m2',id:'kv-m2'},{k:'ink',id:'kv-ink'},{k:'resolved',id:'kv-resolved'},{k:'aufhebung',id:'kv-aufhebung'},{k:'anwalt',id:'kv-anwalt'}].forEach(({k,id})=>{const el=document.getElementById(id);if(el)el.textContent=c[k];});
+  clients.forEach(x=>{const s=getStatus(x);c.all++;if(s==='msg1')c.msg1++;if(s==='followup')c.fu++;if(s==='mahnung1')c.m1++;if(s==='mahnung2')c.m2++;if(s==='inkasso')c.ink++;if(s==='resolved'){c.resolved++;totalPaid+=(x.paidAmount||0);}if(s==='aufhebung')c.aufhebung++;if(s==='anwalt')c.anwalt++;if(s==='zahlung_verweigert')c.refused++;});
+  [{k:'all',id:'kv-all'},{k:'msg1',id:'kv-msg1'},{k:'fu',id:'kv-fu'},{k:'m1',id:'kv-m1'},{k:'m2',id:'kv-m2'},{k:'ink',id:'kv-ink'},{k:'resolved',id:'kv-resolved'},{k:'aufhebung',id:'kv-aufhebung'},{k:'anwalt',id:'kv-anwalt'},{k:'refused',id:'kv-refused'}].forEach(({k,id})=>{const el=document.getElementById(id);if(el)el.textContent=c[k];});
   const subEl=document.querySelector('#kpi-resolved .kpi-sub');
   if(subEl)subEl.textContent=totalPaid>0?`€${totalPaid.toLocaleString('de-DE',{minimumFractionDigits:2})} eingegangen`:'Abgeschlossen';
 }
